@@ -5,6 +5,8 @@ warnings.filterwarnings('ignore', message='numpy.dtype size changed')
 import tensorflow as tf
 import pandas as pd
 
+import numpy as np
+
 import os
 
 from predict import predict
@@ -63,5 +65,7 @@ def train(data, number_epochs, logging_interval, print_to_console):
 
     log = pd.DataFrame(log)
     data['predicted_depth'] = predicted_depths
+
+    print('number of trainable parameters:', np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
 
     return data, log
