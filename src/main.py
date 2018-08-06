@@ -28,5 +28,5 @@ def visualize():
 
 
 if __name__ == '__main__':
-    correct_depths(number_epochs=20, logging_interval=10)
+    correct_depths(number_epochs=10, logging_interval=10)
     visualize()

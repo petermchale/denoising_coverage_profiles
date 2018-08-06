@@ -18,7 +18,7 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
                              shape=[num_filters],
                              initializer=tf.zeros_initializer())
 
-    # setup the convolutional layer operation
+    # set up the convolutional layer operation
     outputs = tf.nn.conv2d(inputs, filter=weights, strides=[1, 1, 1, 1], padding='SAME')
     # The argument [1, 1, 1, 1] is the strides parameter: we want the filter to move in steps of 1 in both the x and
     # y directions (or height and width directions). This information is conveyed in the strides[1] and strides[2]

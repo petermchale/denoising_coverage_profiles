@@ -66,6 +66,9 @@ def train(data, number_epochs, logging_interval, print_to_console):
     log = pd.DataFrame(log)
     data['predicted_depth'] = predicted_depths
 
-    print('number of trainable parameters:', np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
+    print('number of trainable parameters:',
+          np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]))
+
+    print(tf.trainable_variables())
 
     return data, log
