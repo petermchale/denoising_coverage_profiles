@@ -1,9 +1,13 @@
 # coding=utf-8
 
+from __future__ import print_function
+
 # https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import tensorflow as tf
+
+import numpy as np
 
 
 def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shape):
@@ -14,6 +18,7 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
     weights = tf.get_variable('weights',
                               shape=[filter_shape[0], filter_shape[1], num_input_channels, num_filters],
                               initializer=tf.truncated_normal_initializer(stddev=0.05))
+
     biases = tf.get_variable('biases',
                              shape=[num_filters],
                              initializer=tf.zeros_initializer())
@@ -31,6 +36,7 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
     # to track, so we chose the “SAME” option as the padding so we keep the same size.
 
     # add the biases
+    # https://stackoverflow.com/questions/35094899/tensorflow-operator-overloading
     outputs += biases
 
     # apply a ReLU non-linear activation
@@ -60,6 +66,7 @@ def _dense(inputs, number_output_nodes):
 
     # we return an object, which is actually a sub-graph of its own, containing all the operations and
     # weight variables within it
+    # https://stackoverflow.com/questions/35094899/tensorflow-operator-overloading
     return tf.matmul(inputs, weights) + biases
 
 
@@ -69,10 +76,14 @@ def _flatten(layer):
     return tf.reshape(layer, [-1, image_width * image_height * number_filters])
 
 
-def predict(inputs):
+def _number_trainable_parameters():
+    return np.sum([np.prod(variable.get_shape().as_list()) for variable in tf.trainable_variables()])
+
+
+def predict(X):
     # https://www.tensorflow.org/versions/r1.1/programmers_guide/variable_scope
     with tf.variable_scope('conv1'):
-        conv1 = _convolution_activation_pooling(inputs, num_filters=25, filter_shape=[4, 7], pool_shape=[1, 2])
+        conv1 = _convolution_activation_pooling(X, num_filters=25, filter_shape=[4, 7], pool_shape=[1, 2])
 
     with tf.variable_scope('conv2'):
         conv2 = _convolution_activation_pooling(conv1, num_filters=50, filter_shape=[4, 7], pool_shape=[1, 2])
@@ -80,11 +91,11 @@ def predict(inputs):
     flattened2 = _flatten(conv2)
 
     with tf.variable_scope('dense3'):
-        dense3 = _dense(flattened2, number_output_nodes=500)
+        dense3 = tf.nn.relu(_dense(flattened2, number_output_nodes=500))
 
-    dense3 = tf.nn.relu(dense3)
+    with tf.variable_scope('output'):
+        predictions = tf.exp(_dense(dense3, number_output_nodes=1), name='predictions')
 
-    with tf.variable_scope('dense4'):
-        dense4 = _dense(dense3, number_output_nodes=1)
+    print('number of trainable parameters:', _number_trainable_parameters())
 
-    return tf.exp(dense4)
+    return predictions

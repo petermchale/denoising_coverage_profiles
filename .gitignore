@@ -1,6 +1,7 @@
-data/*.fasta*
-data/*.bed*
+data
 *.pyc
 .DS_Store
 .idea
 .ipynb_checkpoints
+graph_variables
+checkpoint.json

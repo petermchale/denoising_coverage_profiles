@@ -17,20 +17,22 @@ def _format_axis(a):
     a.tick_params(labelsize=tick_fontsize)
 
 
+def _compute_corrected_depths(data):
+    data['corrected_depth'] = data['observed_depth']/data['predicted_depth']
+    data['normalized_depth'] = data['observed_depth']/data['observed_depth'].mean()
+
+
 def plot_corrected_depths(data, chromosome_number='1'):
+    _compute_corrected_depths(data)
+
     data = data[data['chromosome_number'] == chromosome_number]
 
     fig = plt.figure()
     _format_fig(fig)
     ax = fig.add_subplot(111)
     x = 0.5*(data['start'] + data['end'])
-    ax.plot(x, data['normalized_depth'], '-', label='observed depth (normalized)')
+    ax.plot(x, data['normalized_depth'], '-', label='normalized depth')
     ax.plot(x, data['corrected_depth'], '-', label='corrected depth')
     ax.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     _format_axis(ax)
     plt.show()
-
-
-
-
-
