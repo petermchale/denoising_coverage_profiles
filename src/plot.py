@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 
+from load_preprocess_data import load_data
+
 
 def _format_fig(fig):
     fig.set_size_inches(10, 6)
@@ -17,12 +19,32 @@ def _format_axis(a):
     a.tick_params(labelsize=tick_fontsize)
 
 
+def _compute_mean_depth():
+    data = load_data(
+        bed_file='../data/facnn-example.regions.bed.gz',
+        fasta_file='../data/human_g1k_v37.fasta',
+        chromosome_number='1',
+        region_start=0,
+        region_end=20000000)
+    return data['observed_depth'].mean()
+
+
 def _compute_corrected_depths(data):
-    data['corrected_depth'] = data['observed_depth']/data['predicted_depth']
-    data['normalized_depth'] = data['observed_depth']/data['observed_depth'].mean()
+    data['corrected_depth'] = data['observed_depth'] / data['predicted_depth']
+    data['normalized_depth'] = data['observed_depth'] / _compute_mean_depth()
 
 
-def plot_corrected_depths(data, chromosome_number='1'):
+def _down_sample(data, number_samples=500):
+    if number_samples < len(data):
+        return data.sample(n=number_samples).sort_values('start')
+    else:
+        return data
+
+
+def plot_corrected_depths(data, chromosome_number='1', title=None):
+
+    data = _down_sample(data)
+
     _compute_corrected_depths(data)
 
     data = data[data['chromosome_number'] == chromosome_number]
@@ -30,9 +52,10 @@ def plot_corrected_depths(data, chromosome_number='1'):
     fig = plt.figure()
     _format_fig(fig)
     ax = fig.add_subplot(111)
-    x = 0.5*(data['start'] + data['end'])
+    x = 0.5 * (data['start'] + data['end'])
     ax.plot(x, data['normalized_depth'], '-', label='normalized depth')
     ax.plot(x, data['corrected_depth'], '-', label='corrected depth')
     ax.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
+    plt.title(title)
     _format_axis(ax)
     plt.show()

@@ -2,6 +2,7 @@ from __future__ import print_function
 
 # https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
 import warnings
+
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
 import tensorflow as tf
 import pandas as pd
@@ -10,8 +11,11 @@ import pandas as pd
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+from sklearn.model_selection import train_test_split
+
 from predict import predict
-from load_preprocess_data import load_preprocess_data
+from load_preprocess_data import load_data, preprocess
+from utility import make_dir, clean_path
 from plot import plot_corrected_depths
 
 
@@ -47,14 +51,10 @@ class Graph(object):
 
         # https://www.tensorflow.org/guide/summaries_and_tensorboard
         with tf.variable_scope('logging'):
-            tf.summary.scalar('current_cost', self.cost)  # attach summary op to node of interest
+            self.cost_summary = tf.summary.scalar('cost', self.cost)
             tf.summary.histogram('predicted_values', self.predictions)
             # create a merged summary op that invokes all previously attached summary ops:
-            self.summary = tf.summary.merge_all()
-
-
-def _clean_path(path):
-    return path.strip('/')
+            self.all_summaries = tf.summary.merge_all()
 
 
 def _current_time():
@@ -62,27 +62,60 @@ def _current_time():
     return time.time()
 
 
-def train(number_epochs, logging_interval, print_to_console, tensorboard_dir, graph_variables_dir):
-    data, images, observed_depths = load_preprocess_data(bed_file='../data/facnn-example.regions.bed.gz',
-                                                         fasta_file='../data/human_g1k_v37.fasta',
-                                                         chromosome_number='1',
-                                                         region_start=0,
-                                                         region_end=200000)
+def load_preprocess_data(bed_file, fasta_file, chromosome_number, region_start, region_end):
+    data = load_data(bed_file, fasta_file, chromosome_number, region_start, region_end)
 
-    _, image_width, image_height, _ = images.shape
+    data_train, data_test = train_test_split(data, test_size=0.2, random_state=42)
+
+    # noinspection PyTypeChecker
+    return (data_train,) + preprocess(data_train) + (data_test,) + preprocess(data_test)
+
+
+def _writer(tensorboard_dir, sub_dir_name, session):
+    return tf.summary.FileWriter(clean_path(tensorboard_dir) + '/' + sub_dir_name, session.graph)
+
+
+def batches(images, observed_depths, graph, batch_size=256):
+    import numpy as np
+    batch_indices = np.arange(batch_size)
+    while max(batch_indices) < images.shape[0]:
+        yield {graph.X: images[batch_indices, :, :, :],
+               graph.y: observed_depths[batch_indices]}
+        batch_indices += batch_size
+
+
+def train(number_epochs, logging_interval, checkpoint_interval,
+          print_to_console, tensorboard_dir, graph_variables_dir, training_data_dir):
+
+    if number_epochs <= max(logging_interval, checkpoint_interval):
+        print('logging_interval or checkpoint_interval is too large!')
+        import sys
+        sys.exit()
+
+    (data_train, images_train, observed_depths_train,
+     data_test, images_test, observed_depths_test) = load_preprocess_data(
+        bed_file='../data/facnn-example.regions.bed.gz',
+        fasta_file='../data/human_g1k_v37.fasta',
+        chromosome_number='1',
+        region_start=0,
+        region_end=2000000)
+
+    _, image_width, image_height, _ = images_train.shape
     graph = Graph(image_width, image_height)
 
     log = []
-    predicted_depths = None
+
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
 
-        # using a context manager, i.e. the "with" syntax,
-        # ensures that the FileWriter buffer is emptied, i.e. the log data are written to disk
-        logdir = _clean_path(tensorboard_dir) + '/training'
         import shutil
-        shutil.rmtree(logdir)
-        with tf.summary.FileWriter(logdir=logdir, graph=session.graph) as training_writer:
+        shutil.rmtree(tensorboard_dir)
+
+        # using a context manager, i.e. the "with" syntax,
+        # ensures that the FileWriter buffer is emptied, i.e. data are written to disk
+        with _writer(tensorboard_dir, 'train', session) as train_writer, \
+                _writer(tensorboard_dir, 'test', session) as test_writer:
+
             start_time = _current_time()
             for epoch in range(number_epochs):
 
@@ -92,82 +125,85 @@ def train(number_epochs, logging_interval, print_to_console, tensorboard_dir, gr
                 # for minibatch in minibatches:
                 #     X, y = minibatch
 
-                feed_dict = {graph.X: images, graph.y: observed_depths}
+                for batch in batches(images_train, observed_depths_train, graph):
+                    session.run(graph.training_step, feed_dict=batch)
 
-                _, cost, predicted_depths = session.run(
-                    [graph.training_step, graph.cost, graph.predictions], feed_dict=feed_dict)
+                feed_dict_train = {graph.X: images_train, graph.y: observed_depths_train}
+                cost_train, predicted_depths_train = session.run(
+                    [graph.cost, graph.predictions], feed_dict=feed_dict_train)
+
+                feed_dict_test = {graph.X: images_test, graph.y: observed_depths_test}
+                cost_test, predicted_depths_test = session.run(
+                    [graph.cost, graph.predictions], feed_dict=feed_dict_test)
 
                 if epoch % logging_interval == 0:
                     if print_to_console:
                         number_depths = 3
                         print('epoch:', epoch,
                               'elapsed time (secs):', _current_time() - start_time,
-                              'cost:', cost,
-                              'observed_depths:', observed_depths[:number_depths, 0],
-                              'predicted_depths:', predicted_depths[:number_depths, 0])
+                              'cost_train:', cost_train,
+                              'cost_test:', cost_test,
+                              'observed_depths_train:', observed_depths_train[:number_depths, 0],
+                              'predicted_depths_train:', predicted_depths_train[:number_depths, 0])
 
                     # https://stackoverflow.com/questions/31674557/how-to-append-rows-in-a-pandas-dataframe-in-a-for-loop
                     # https://stackoverflow.com/questions/37009287/using-pandas-append-within-for-loop/37009377
-                    log.append({'epoch': epoch, 'cost': cost})
+                    log.append({'epoch': epoch, 'cost_train': cost_train, 'cost_test': cost_test})
 
                     # https://www.tensorflow.org/guide/summaries_and_tensorboard
-                    summary = session.run(graph.summary, feed_dict=feed_dict)
-                    training_writer.add_summary(summary, epoch)
+                    train_writer.add_summary(session.run(graph.all_summaries, feed_dict=feed_dict_train), epoch)
+                    test_writer.add_summary(session.run(graph.cost_summary, feed_dict=feed_dict_test), epoch)
 
-        checkpoint = {
-            # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/
-            # the second argument of save() is the filename prefix of checkpoint files it creates
-            'prefix': tf.train.Saver().save(session, _clean_path(graph_variables_dir) + '/trained_model.ckpt'),
-            'graph_variables_dir': graph_variables_dir}
-        import json
-        with open('checkpoint.json', 'w') as fp:
-            json.dump(checkpoint, fp, indent=4)
+                if epoch % checkpoint_interval == 0:
+                    graph_variables_checkpoint = {
+                        # https://stackabuse.com/tensorflow-save-and-restore-models/
+                        # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/
+                        # the second argument of save() is the filename prefix of checkpoint files it creates
+                        'prefix': tf.train.Saver().save(session,
+                                                        clean_path(graph_variables_dir) + '/trained_model.ckpt'),
+                        'graph_variables_dir': graph_variables_dir}
+                    import json
+                    with open('checkpoint.json', 'w') as fp:
+                        json.dump(graph_variables_checkpoint, fp, indent=4)
 
-    log = pd.DataFrame(log)
-    data['predicted_depth'] = predicted_depths
-
-    return data, log
-
-
-def _make_dir(dir_name):
-    import errno
-
-    if not os.path.exists(dir_name):
-        try:
-            os.makedirs(dir_name)
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
+                    data_train['predicted_depth'] = predicted_depths_train
+                    data_test['predicted_depth'] = predicted_depths_test
+                    pickle(data_train.sort_values('start'),
+                           data_test.sort_values('start'),
+                           pd.DataFrame(log),
+                           training_data_dir)
 
 
 def _generate_file_names(dataframe_dir):
-    _make_dir(dataframe_dir)
-    return (_clean_path(dataframe_dir) + '/training_data.pkl',
-            _clean_path(dataframe_dir) + '/training_log.pkl')
+    make_dir(dataframe_dir)
+    return (clean_path(dataframe_dir) + '/data_train.pkl',
+            clean_path(dataframe_dir) + '/data_test.pkl',
+            clean_path(dataframe_dir) + '/log.pkl')
 
 
-def pickle(data, log, dataframe_dir):
-    data_filename, log_filename = _generate_file_names(dataframe_dir)
-    data.to_pickle(data_filename)
+def pickle(data_train, data_test, log, dataframe_dir):
+    data_train_filename, data_test_filename, log_filename = _generate_file_names(dataframe_dir)
+    data_train.to_pickle(data_train_filename)
+    data_test.to_pickle(data_test_filename)
     log.to_pickle(log_filename)
 
 
 def unpickle(dataframe_dir):
-    data_filename, log_filename = _generate_file_names(dataframe_dir)
-    return pd.read_pickle(data_filename), pd.read_pickle(log_filename)
+    data_train_filename, data_test_filename, log_filename = _generate_file_names(dataframe_dir)
+    return (pd.read_pickle(data_train_filename),
+            pd.read_pickle(data_test_filename),
+            pd.read_pickle(log_filename))
 
 
 def main():
-    tensorboard_dir = '../trained_model/tensorboard'
-    dataframe_dir = '../trained_model/training_data'
-    graph_variables_dir = '../trained_model/graph_variables'
+    training_data_dir = '../trained_model/training_data'
+    train(number_epochs=100, logging_interval=1, checkpoint_interval=1, print_to_console=True,
+          tensorboard_dir='../trained_model/tensorboard', graph_variables_dir='../trained_model/graph_variables',
+          training_data_dir=training_data_dir)
 
-    data, log = train(number_epochs=11, logging_interval=10, print_to_console=True,
-                      tensorboard_dir=tensorboard_dir, graph_variables_dir=graph_variables_dir)
-
-    plot_corrected_depths(data)
-
-    pickle(data, log, dataframe_dir)
+    training_data, validation_data, training_log = unpickle(training_data_dir)
+    plot_corrected_depths(training_data, title='training data')
+    plot_corrected_depths(validation_data, title='validation data')
 
 
 if __name__ == '__main__':

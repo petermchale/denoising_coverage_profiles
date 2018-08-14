@@ -75,8 +75,4 @@ def preprocess(data):
     return images, depths
 
 
-def load_preprocess_data(bed_file, fasta_file, chromosome_number, region_start, region_end):
-    data = load_data(bed_file, fasta_file, chromosome_number, region_start, region_end)
-    # noinspection PyTypeChecker
-    return (data,) + preprocess(data)
 
