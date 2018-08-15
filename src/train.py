@@ -197,13 +197,17 @@ def unpickle(dataframe_dir):
 
 def main():
     training_data_dir = '../trained_model/training_data'
-    train(number_epochs=100, logging_interval=1, checkpoint_interval=1, print_to_console=True,
-          tensorboard_dir='../trained_model/tensorboard', graph_variables_dir='../trained_model/graph_variables',
-          training_data_dir=training_data_dir)
+    # train(number_epochs=100, logging_interval=1, checkpoint_interval=1, print_to_console=True,
+    #       tensorboard_dir='../trained_model/tensorboard', graph_variables_dir='../trained_model/graph_variables',
+    #       training_data_dir=training_data_dir)
 
     training_data, validation_data, training_log = unpickle(training_data_dir)
-    plot_corrected_depths(training_data, title='training data')
-    plot_corrected_depths(validation_data, title='validation data')
+
+    from plot import compute_observed_depth_mean
+    observed_depth_mean = compute_observed_depth_mean(training_data)
+
+    plot_corrected_depths(training_data, observed_depth_mean, title='training data')
+    plot_corrected_depths(validation_data, observed_depth_mean, title='validation data')
 
 
 if __name__ == '__main__':

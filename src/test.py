@@ -78,7 +78,11 @@ def unpickle(data_dir):
 def main():
     test_data_dir = '../trained_model/test_data'
     test(test_data_dir)
-    plot_corrected_depths(unpickle(test_data_dir))
+
+    training_data = pd.read_pickle('../trained_model/training_data/data_train.pkl')
+    from plot import compute_observed_depth_mean
+    observed_depth_mean = compute_observed_depth_mean(training_data)
+    plot_corrected_depths(unpickle(test_data_dir), observed_depth_mean)
 
 
 if __name__ == '__main__':
