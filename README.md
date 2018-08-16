@@ -1,3 +1,5 @@
+minor change 
+
 # Motivation
 
 Clinical labs are moving towards WGS. 
@@ -11,7 +13,9 @@ But WGS coverage profiles are noisy, confounding the discovery of CNVs.
 The standard approach to characterize the noise is to do control experiments 
 where the signal is purposefully left out.  But this costs money and time. 
 
-Here we use deep learning techniques to learn the noise characteristics. 
+Deep learning has proven successful at mapping sequence information onto 
+epigenetic information. Here we tackle the potentially more challenging 
+task of deep-learning a mapping from sequence to read depth. 
 
 Any methods developed will be highly generalizable to other seq protocols, e.g., RNA-seq. 
 

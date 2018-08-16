@@ -51,3 +51,17 @@ def plot_corrected_depths(data, observed_depth_mean, chromosome_number='1', titl
     plt.title(title)
     _format_axis(ax)
     plt.show()
+
+
+def plot_costs(log):
+    fig = plt.figure()
+    _format_fig(fig)
+    ax = fig.add_subplot(111)
+    ax.plot(log['epoch'], log['cost_train'], '-', label='training cost')
+    ax.plot(log['epoch'], log['cost_test'], '-', label='validation cost')
+    ax.set_xlabel('epoch')
+    _format_axis(ax)
+    plt.show()
+
+
+

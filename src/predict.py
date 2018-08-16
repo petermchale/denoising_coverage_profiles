@@ -83,18 +83,18 @@ def _number_trainable_parameters():
 def predict(X):
     # https://www.tensorflow.org/versions/r1.1/programmers_guide/variable_scope
     with tf.variable_scope('conv1'):
-        conv1 = _convolution_activation_pooling(X, num_filters=25, filter_shape=[4, 7], pool_shape=[1, 2])
+        conv1 = _convolution_activation_pooling(X, num_filters=25, filter_shape=[4, 8], pool_shape=[1, 2])
 
     with tf.variable_scope('conv2'):
-        conv2 = _convolution_activation_pooling(conv1, num_filters=50, filter_shape=[4, 7], pool_shape=[1, 2])
+        conv2 = _convolution_activation_pooling(conv1, num_filters=50, filter_shape=[4, 8], pool_shape=[1, 2])
 
-    flattened2 = _flatten(conv2)
+    flattened = _flatten(conv2)
 
-    with tf.variable_scope('dense3'):
-        dense3 = tf.nn.relu(_dense(flattened2, number_output_nodes=500))
+    with tf.variable_scope('dense'):
+        dense = tf.nn.relu(_dense(flattened, number_output_nodes=500))
 
     with tf.variable_scope('output'):
-        predictions = tf.exp(_dense(dense3, number_output_nodes=1), name='predictions')
+        predictions = tf.exp(_dense(dense, number_output_nodes=1), name='predictions')
 
     print('number of trainable parameters:', _number_trainable_parameters())
 

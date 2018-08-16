@@ -9,7 +9,10 @@ import pandas as pd
 
 # https://stackoverflow.com/questions/47068709/your-cpu-supports-instructions-that-this-tensorflow-binary-was-not-compiled-to-u
 import os
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+import numpy as np
 
 from sklearn.model_selection import train_test_split
 
@@ -75,17 +78,36 @@ def _writer(tensorboard_dir, sub_dir_name, session):
     return tf.summary.FileWriter(clean_path(tensorboard_dir) + '/' + sub_dir_name, session.graph)
 
 
-def batches(images, observed_depths, graph, batch_size=256):
-    import numpy as np
+def mini_batches(images, observed_depths, graph, batch_size=256):
+    # shuffle the data:
+    # https://stats.stackexchange.com/questions/248048/neural-networks-why-do-we-randomize-the-training-set
+    # https://stats.stackexchange.com/questions/245502/shuffling-data-in-the-mini-batch-training-of-neural-network
+    number_examples = len(observed_depths)
+    permutation = np.random.permutation(number_examples)
+    shuffled_images = images[permutation, :, :, :]
+    shuffled_observed_depths = observed_depths[permutation, :]
+
+    # Here, I implement sampling without replacement, which converges faster than sampling with replacement:
+    # theory: https://stats.stackexchange.com/questions/235844/should-training-samples-randomly-drawn-for-mini-batch-training-neural-nets-be-dr
+    # experiment: https://stats.stackexchange.com/questions/242004/why-do-neural-network-researchers-care-about-epochs
     batch_indices = np.arange(batch_size)
-    while max(batch_indices) < images.shape[0]:
-        yield {graph.X: images[batch_indices, :, :, :],
-               graph.y: observed_depths[batch_indices]}
+    while max(batch_indices) < shuffled_images.shape[0]:
+        yield {graph.X: shuffled_images[batch_indices, :, :, :],
+               graph.y: shuffled_observed_depths[batch_indices, :]}
         batch_indices += batch_size
+
+    # Omit the last mini-batch for simplicity.
+    # Including it MAY require scaling the learning rate by the size of the mini batch
+    # min_index = min(batch_indices)
+    # yield {graph.X: images[min_index:, :, :, :],
+    #        graph.y: observed_depths[min_index:]}
 
 
 def train(number_epochs, logging_interval, checkpoint_interval,
           print_to_console, tensorboard_dir, graph_variables_dir, training_data_dir):
+
+    # !!! use tf.data API when input data is distributed across multiple machines !!!
+    # !!! https://www.youtube.com/watch?v=uIcqeP7MFH0 !!!
 
     if number_epochs <= max(logging_interval, checkpoint_interval):
         print('logging_interval or checkpoint_interval is too large!')
@@ -119,14 +141,8 @@ def train(number_epochs, logging_interval, checkpoint_interval,
             start_time = _current_time()
             for epoch in range(number_epochs):
 
-                # number_minibatches = int(total_sample_size/minibatch_size)
-                # seed += 1.0
-                # minibatches = random_mini_batches(X, y, minibatch_size, seed)
-                # for minibatch in minibatches:
-                #     X, y = minibatch
-
-                for batch in batches(images_train, observed_depths_train, graph):
-                    session.run(graph.training_step, feed_dict=batch)
+                for mini_batch in mini_batches(images_train, observed_depths_train, graph):
+                    session.run(graph.training_step, feed_dict=mini_batch)
 
                 feed_dict_train = {graph.X: images_train, graph.y: observed_depths_train}
                 cost_train, predicted_depths_train = session.run(
@@ -197,9 +213,9 @@ def unpickle(dataframe_dir):
 
 def main():
     training_data_dir = '../trained_model/training_data'
-    # train(number_epochs=100, logging_interval=1, checkpoint_interval=1, print_to_console=True,
-    #       tensorboard_dir='../trained_model/tensorboard', graph_variables_dir='../trained_model/graph_variables',
-    #       training_data_dir=training_data_dir)
+    train(number_epochs=100, logging_interval=1, checkpoint_interval=1, print_to_console=True,
+          tensorboard_dir='../trained_model/tensorboard', graph_variables_dir='../trained_model/graph_variables',
+          training_data_dir=training_data_dir)
 
     training_data, validation_data, training_log = unpickle(training_data_dir)
 
