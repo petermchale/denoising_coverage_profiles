@@ -1,5 +1,3 @@
-another change on macbook 
-
 # Motivation
 
 Clinical labs are moving towards WGS. 
