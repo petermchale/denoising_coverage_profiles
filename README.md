@@ -1,5 +1,3 @@
-minor change 
-
 # Motivation
 
 Clinical labs are moving towards WGS. 
