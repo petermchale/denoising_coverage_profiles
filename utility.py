@@ -1,10 +1,6 @@
 import os
 
 
-def clean_path(path):
-    return path.strip('/')
-
-
 def make_dir(dir_name):
     import errno
 
