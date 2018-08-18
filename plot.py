@@ -62,6 +62,3 @@ def plot_costs(log):
     ax.set_xlabel('epoch')
     _format_axis(ax)
     plt.show()
-
-
-

@@ -10,6 +10,3 @@ def make_dir(dir_name):
         except OSError as exc:  # Guard against race condition
             if exc.errno != errno.EEXIST:
                 raise
-
-
-

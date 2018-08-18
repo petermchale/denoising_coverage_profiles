@@ -73,6 +73,3 @@ def preprocess(data):
     depths = depths.reshape((len(depths), 1))
 
     return images, depths
-
-
-
