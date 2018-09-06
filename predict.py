@@ -1,13 +1,9 @@
 # coding=utf-8
 
-from __future__ import print_function
-
 # https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import tensorflow as tf
-
-import numpy as np
 
 
 def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shape):
@@ -18,10 +14,12 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
     weights = tf.get_variable('weights',
                               shape=[filter_shape[0], filter_shape[1], num_input_channels, num_filters],
                               initializer=tf.truncated_normal_initializer(stddev=0.05))
+    tf.summary.histogram('weights', weights)
 
     biases = tf.get_variable('biases',
                              shape=[num_filters],
                              initializer=tf.zeros_initializer())
+    tf.summary.histogram('biases', biases)
 
     # set up the convolutional layer operation
     outputs = tf.nn.conv2d(inputs, filter=weights, strides=[1, 1, 1, 1], padding='SAME')
@@ -38,6 +36,7 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
     # add the biases
     # https://stackoverflow.com/questions/35094899/tensorflow-operator-overloading
     outputs += biases
+    tf.summary.histogram('neuron_input', outputs)
 
     # apply a ReLU non-linear activation
     outputs = tf.nn.relu(outputs)
@@ -60,14 +59,20 @@ def _dense(inputs, number_output_nodes):
     weights = tf.get_variable(name='weights',
                               shape=(number_input_nodes, number_output_nodes),
                               initializer=tf.contrib.layers.xavier_initializer())
+    tf.summary.histogram('weights', weights)
+
     biases = tf.get_variable(name='biases',
                              shape=number_output_nodes,
                              initializer=tf.zeros_initializer())
+    tf.summary.histogram('biases', biases)
 
     # we return an object, which is actually a sub-graph of its own, containing all the operations and
     # weight variables within it
     # https://stackoverflow.com/questions/35094899/tensorflow-operator-overloading
-    return tf.matmul(inputs, weights) + biases
+    outputs = tf.matmul(inputs, weights) + biases
+    tf.summary.histogram('neuron_input', outputs)
+
+    return outputs
 
 
 def _flatten(layer):
@@ -76,26 +81,20 @@ def _flatten(layer):
     return tf.reshape(layer, [-1, image_width * image_height * number_filters])
 
 
-def _number_trainable_parameters():
-    return np.sum([np.prod(variable.get_shape().as_list()) for variable in tf.trainable_variables()])
-
-
 def predict(X):
     # https://www.tensorflow.org/versions/r1.1/programmers_guide/variable_scope
-    with tf.variable_scope('conv1'):
+    with tf.variable_scope('conv1_layer'):
         conv1 = _convolution_activation_pooling(X, num_filters=25, filter_shape=[4, 8], pool_shape=[1, 2])
 
-    with tf.variable_scope('conv2'):
+    with tf.variable_scope('conv2_layer'):
         conv2 = _convolution_activation_pooling(conv1, num_filters=50, filter_shape=[4, 8], pool_shape=[1, 2])
 
     flattened = _flatten(conv2)
 
-    with tf.variable_scope('dense'):
+    with tf.variable_scope('dense_layer'):
         dense = tf.nn.relu(_dense(flattened, number_output_nodes=500))
 
-    with tf.variable_scope('output'):
+    with tf.variable_scope('output_layer'):
         predictions = tf.exp(_dense(dense, number_output_nodes=1), name='predictions')
-
-    print('number of trainable parameters:', _number_trainable_parameters())
 
     return predictions

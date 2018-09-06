@@ -9,11 +9,8 @@ import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-import pandas as pd
-
 from load_preprocess_data import load_data, preprocess
-from plot import plot_corrected_depths
-from utility import make_dir
+from test_utility import pickle
 
 
 def _restore_graph(checkpoint):
@@ -29,9 +26,7 @@ def _restore_variables(graph, checkpoint, session):
 
 
 def _make_paths_complete(checkpoint, trained_model_dir):
-    for key, value in checkpoint.items():
-        checkpoint[key] = os.path.join(trained_model_dir, value)
-    return checkpoint
+    return {key: os.path.join(trained_model_dir, value) for key, value in checkpoint.items()}
 
 
 def _load_checkpoint(fp, trained_model_dir):
@@ -73,19 +68,6 @@ def test(trained_model_dir, test_data_dir):
         pickle(data_test, trained_model_dir)
 
 
-def _generate_file_name(data_dir):
-    make_dir(data_dir)
-    return os.path.join(data_dir, 'test.pkl')
-
-
-def pickle(data, data_dir):
-    data.to_pickle(_generate_file_name(data_dir))
-
-
-def unpickle(data_dir):
-    return pd.read_pickle(_generate_file_name(data_dir))
-
-
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -95,9 +77,8 @@ def main():
 
     test(trained_model_dir=args.trained_model, test_data_dir=args.test_data)
 
-    from plot import compute_observed_depth_mean
-    observed_depth_mean = compute_observed_depth_mean(pd.read_pickle(os.path.join(args.trained_model, 'train.pkl')))
-    plot_corrected_depths(unpickle(args.trained_model), observed_depth_mean, title='test data')
+    from plot import plot_corrected_depths_test_all
+    plot_corrected_depths_test_all([args.trained_model])
 
 
 if __name__ == '__main__':

@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from pyfaidx import Fasta
 import subprocess
 
@@ -44,8 +42,6 @@ def load_data(bed_file, fasta_file, chromosome_number, region_start, region_end)
                      'end': window_end,
                      'sequence': window_sequence,
                      'observed_depth': window_depth})
-
-    print('number of examples:', len(data))
 
     return pd.DataFrame(data)
 
