@@ -1,3 +1,3 @@
 python test.py \
 	--trained_model $1 \
-	--test_data $2
+	--test_data ../data/test_data 

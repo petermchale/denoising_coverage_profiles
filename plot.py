@@ -143,11 +143,11 @@ def _plot_costs(log, start_epoch=None, end_epoch=None, max_cost=None, min_cost=N
     plt.show()
 
 
-def plot_costs_all(trained_models):
+def plot_costs_all(trained_models, loglog=True):
     for trained_model in trained_models:
         _, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
-        _plot_costs(cost_versus_epoch, max_cost=200, min_cost=2, start_epoch=0.1, end_epoch=1000,
-                    title=trained_model['annotation'])
+        _plot_costs(cost_versus_epoch, max_cost=200, min_cost=2, start_epoch=0.01, end_epoch=1000,
+                    title=trained_model['annotation'], loglog=loglog)
 
 
 def _get_training_set_size(trained_model_path):

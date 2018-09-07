@@ -42,7 +42,7 @@ class Graph(object):
         tf.set_random_seed(1)
 
         # dimensions of X are [number_examples, image_width, image_height, number_channels]:
-        with tf.variable_scope('input'):
+        with tf.variable_scope('input_layer'):
             self.X = tf.placeholder(tf.float32, shape=[None, image_width, image_height, 1], name='X')
         self.predictions = predict(self.X)
 
@@ -167,6 +167,14 @@ def _save_graph_variables(session, trained_model_dir):
         json.dump(checkpoint, fp, indent=4)
 
 
+# https://bugs.python.org/issue24313
+# https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
+def _make_serializable(o):
+    if isinstance(o, np.integer):
+        return int(o)
+    raise TypeError
+
+
 def train(train_data_dir, trained_model_dir, region_start, region_end, batch_size, learning_rate,
           number_epochs=1000, checkpoint_number_batches=5, max_number_batches_to_average=1):
     # !!! use tf.data API when input data is distributed across multiple machines !!!
@@ -205,7 +213,7 @@ def train(train_data_dir, trained_model_dir, region_start, region_end, batch_siz
                 'max number of recent batches to average over': max_number_batches_to_average
             }
             with open(os.path.join(trained_model_dir, 'specs.json'), 'w') as fp:
-                json.dump(specs, fp, indent=4)
+                json.dump(specs, fp, indent=4, default=_make_serializable)
 
             data_train_sampled, images_train_sampled, observed_depths_train_sampled = _downsample_preprocess(data_train)
             feed_dict_train_sampled = {graph.X: images_train_sampled, graph.y: observed_depths_train_sampled}

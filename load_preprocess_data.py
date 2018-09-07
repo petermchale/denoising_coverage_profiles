@@ -18,7 +18,10 @@ def _read_bed(bed_file, chromosome_number, region_start=None, region_end=None):
     else:
         region = "%s:%d-%d" % (chromosome_number, region_start + 1, region_end)
     command = 'tabix {} {}'.format(bed_file, region)
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    # make code compatible with python 2 and 3:
+    # https://stackoverflow.com/questions/38181494/what-is-the-difference-between-using-universal-newlines-true-with-bufsize-1-an
+    # https://stackoverflow.com/questions/37500410/python-2-to-3-conversion-iterating-over-lines-in-subprocess-stdout
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
     for line in process.stdout:
         _, window_start, window_end, window_depth = line.rstrip().split('\t')
         yield int(window_start), int(window_end), float(window_depth)

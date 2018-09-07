@@ -23,6 +23,7 @@ def _restore_variables(graph, checkpoint, session):
     # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/
     # https://stackabuse.com/tensorflow-save-and-restore-models/
     graph.restore(session, tf.train.latest_checkpoint(checkpoint['graph_variables_dir']))
+    print(tf.train.list_variables(checkpoint['graph_variables_dir']))
 
 
 def _make_paths_complete(checkpoint, trained_model_dir):
@@ -62,7 +63,7 @@ def test(trained_model_dir, test_data_dir):
     with tf.Session() as session:
         graph = _restore_graph_variables(session, trained_model_dir)
         # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/
-        data_test['predicted_depth'] = session.run(graph.get_tensor_by_name('output/predictions:0'),
+        data_test['predicted_depth'] = session.run(graph.get_tensor_by_name('output_layer/predictions:0'),
                                                    {graph.get_tensor_by_name('input/X:0'): images_test,
                                                     graph.get_tensor_by_name('cost/y:0'): observed_depths_test})
         pickle(data_test, trained_model_dir)
@@ -76,10 +77,6 @@ def main():
     args = parser.parse_args()
 
     test(trained_model_dir=args.trained_model, test_data_dir=args.test_data)
-
-    from plot import plot_corrected_depths_test_all
-    plot_corrected_depths_test_all([args.trained_model])
-
 
 if __name__ == '__main__':
     main()
