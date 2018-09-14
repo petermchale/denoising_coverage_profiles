@@ -64,7 +64,7 @@ def test(trained_model_dir, test_data_dir):
         graph = _restore_graph_variables(session, trained_model_dir)
         # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/
         data_test['predicted_depth'] = session.run(graph.get_tensor_by_name('output_layer/predictions:0'),
-                                                   {graph.get_tensor_by_name('input/X:0'): images_test,
+                                                   {graph.get_tensor_by_name('input_layer/X:0'): images_test,
                                                     graph.get_tensor_by_name('cost/y:0'): observed_depths_test})
         pickle(data_test, trained_model_dir)
 
