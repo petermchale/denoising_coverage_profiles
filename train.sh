@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-set -e
-set -uo pipefail
-set -x
-export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+# set -e
+# set -uo pipefail
+# set -x
+# export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 
 train_data='../data/train_data'
 trained_model=$1 
