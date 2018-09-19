@@ -7,9 +7,9 @@
 
 train_data='../data/train_data'
 trained_model=$1 
-region_start=0
+region_start=10000
 region_end=$2
-batch_size=256
+batch_size=64
 learning_rate=$3
 
 source ask.sh
