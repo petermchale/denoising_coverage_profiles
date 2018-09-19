@@ -18,6 +18,7 @@ import json
 from sklearn.model_selection import train_test_split
 
 from predict import predict
+import load_preprocess_data
 from load_preprocess_data import load_data, preprocess
 from utility import append_log_file, silent_remove, down_sample
 from train_utility import pickle
@@ -67,8 +68,9 @@ def _current_time():
     return time.time()
 
 
-def load_preprocess_data(bed_file, fasta_file, chromosome_number, region_start, region_end, maximum_dev_size=1000):
-    data = load_data(bed_file, fasta_file, chromosome_number, region_start, region_end)
+def _load_preprocess_data(fasta_file, bed_file_processor, bed_file,
+                          chromosome_number, region_start, region_end, maximum_dev_size=1000):
+    data = load_data(fasta_file, bed_file_processor, bed_file, chromosome_number, region_start, region_end)
 
     random_state = 42
     dev_fraction = 0.2
@@ -175,7 +177,8 @@ def _make_serializable(o):
     raise TypeError
 
 
-def train(train_data_dir, trained_model_dir, region_start, region_end, batch_size, learning_rate,
+def train(train_data_dir, trained_model_dir,
+          bed_file_processor, bed_file, region_start, region_end, batch_size, learning_rate,
           number_epochs=1000, checkpoint_number_batches=5, max_number_batches_to_average=1):
     # !!! use tf.data API when input data is distributed across multiple machines !!!
     # !!! https://www.youtube.com/watch?v=uIcqeP7MFH0 !!!
@@ -184,9 +187,10 @@ def train(train_data_dir, trained_model_dir, region_start, region_end, batch_siz
 
     # faidx human_g1k_v37.fasta -i chromsizes => chr1 = 249250621 bp
     (data_train, images_train, observed_depths_train,
-     data_dev, images_dev, observed_depths_dev) = load_preprocess_data(
-        bed_file=os.path.join(train_data_dir, 'facnn-example.regions.bed.gz'),
+     data_dev, images_dev, observed_depths_dev) = _load_preprocess_data(
         fasta_file=os.path.join(train_data_dir, 'human_g1k_v37.fasta'),
+        bed_file_processor=getattr(load_preprocess_data, bed_file_processor),
+        bed_file=os.path.join(train_data_dir, bed_file),
         chromosome_number='1',
         region_start=region_start,
         region_end=region_end)
@@ -204,6 +208,8 @@ def train(train_data_dir, trained_model_dir, region_start, region_end, batch_siz
 
             specs = {
                 'total number of train examples': len(observed_depths_train),
+                'bed file processor': bed_file_processor,
+                'bed file': bed_file,
                 'training region start': region_start,
                 'training region end': region_end,
                 'number of train examples per batch': batch_size,
@@ -300,6 +306,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_data')
     parser.add_argument('--trained_model')
+    parser.add_argument('--bed_file_processor')
+    parser.add_argument('--bed_file')
     parser.add_argument('--region_start')
     parser.add_argument('--region_end')
     parser.add_argument('--batch_size')
@@ -307,6 +315,7 @@ def main():
     args = parser.parse_args()
 
     train(train_data_dir=args.train_data, trained_model_dir=args.trained_model,
+          bed_file_processor=args.bed_file_processor, bed_file=args.bed_file,
           region_start=int(args.region_start), region_end=int(args.region_end),
           batch_size=int(args.batch_size), learning_rate=float(args.learning_rate))
 

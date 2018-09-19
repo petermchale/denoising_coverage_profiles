@@ -24,7 +24,7 @@ def _create_process(bed_file, chromosome_number, region_start, region_end):
     return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
 
 
-def _averageDepth_nonOverlappingWindows(bed_file, chromosome_number, region_start=None, region_end=None):
+def averageDepth_nonOverlappingWindows(bed_file, chromosome_number, region_start=None, region_end=None):
     process = _create_process(bed_file, chromosome_number, region_start, region_end)
     for line in process.stdout:
         _, window_start, window_end, window_depth = line.rstrip().split('\t')
@@ -32,7 +32,7 @@ def _averageDepth_nonOverlappingWindows(bed_file, chromosome_number, region_star
     process.wait()
 
 
-def _exactDepth_slidingWindow(bed_file, chromosome_number, region_start=None, region_end=None):
+def exactDepth_slidingWindow(bed_file, chromosome_number, region_start=None, region_end=None):
     process = _create_process(bed_file, chromosome_number, region_start, region_end)
     for line in process.stdout:
         _, perBase_window_start, perBase_window_end, perBase_window_depth = line.rstrip().split('\t')
@@ -45,11 +45,11 @@ def _exactDepth_slidingWindow(bed_file, chromosome_number, region_start=None, re
     process.wait()
 
 
-def load_data(bed_file, fasta_file, chromosome_number, region_start, region_end):
+def load_data(fasta_file, bed_file_processor, bed_file, chromosome_number, region_start, region_end):
     chromosome = _read_fasta(fasta_file, chromosome_number)
 
     data = []
-    for window_start, window_end, window_depth in _exactDepth_slidingWindow(bed_file, chromosome_number, region_start, region_end):
+    for window_start, window_end, window_depth in bed_file_processor(bed_file, chromosome_number, region_start, region_end):
         if window_depth < 1.0:
             continue
         window_sequence = chromosome[window_start:window_end]

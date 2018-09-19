@@ -37,3 +37,11 @@ def down_sample(data, number_samples=1000):
         return data.sample(n=number_samples).sort_values('start')
     else:
         return data
+
+
+import json
+
+
+def get_specs(trained_model_path):
+    with open(os.path.join(trained_model_path, 'specs.json'), 'r') as fp:
+        return json.load(fp)

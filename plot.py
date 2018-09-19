@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
-import os
-import json
 
-from utility import down_sample
+from utility import down_sample, get_specs
 import train_utility
 import test_utility
 
@@ -150,17 +148,12 @@ def plot_costs_all(trained_models, loglog=True):
                     title=trained_model['annotation'], loglog=loglog)
 
 
-def _get_training_set_size(trained_model_path):
-    with open(os.path.join(trained_model_path, 'specs.json'), 'r') as fp:
-        return json.load(fp)['total number of train examples']
-
-
 def plot_costs_versus_training_size(trained_models, semilogx=True):
     training_set_sizes = []
     costs_train = []
     costs_dev = []
     for trained_model in trained_models:
-        training_set_sizes.append(_get_training_set_size(trained_model['path']))
+        training_set_sizes.append(get_specs(trained_model['path'])['total number of train examples'])
         _, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
         last_record = cost_versus_epoch.to_dict('records')[-1]
         costs_train.append(last_record['cost_train'])

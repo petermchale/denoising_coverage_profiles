@@ -9,8 +9,10 @@ import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
+import load_preprocess_data
 from load_preprocess_data import load_data, preprocess
 from test_utility import pickle
+from utility import get_specs
 
 
 def _restore_graph(checkpoint):
@@ -44,8 +46,8 @@ def _restore_graph_variables(session, trained_model_dir):
     return tf.get_default_graph()
 
 
-def load_preprocess_data(bed_file, fasta_file, chromosome_number, region_start, region_end):
-    data = load_data(bed_file, fasta_file, chromosome_number, region_start, region_end)
+def _load_preprocess_data(fasta_file, bed_file_processor, bed_file, chromosome_number, region_start, region_end):
+    data = load_data(fasta_file, bed_file_processor, bed_file, chromosome_number, region_start, region_end)
 
     # noinspection PyTypeChecker
     return (data,) + preprocess(data)
@@ -53,9 +55,12 @@ def load_preprocess_data(bed_file, fasta_file, chromosome_number, region_start, 
 
 def test(trained_model_dir, test_data_dir):
     deletion_padding = 50000
-    data_test, images_test, observed_depths_test = load_preprocess_data(
-        bed_file=os.path.join(test_data_dir, 'facnn-example.regions.bed.gz'),
+    data_test, images_test, observed_depths_test = _load_preprocess_data(
         fasta_file=os.path.join(test_data_dir, 'human_g1k_v37.fasta'),
+        bed_file_processor=getattr(load_preprocess_data,
+                                   get_specs(trained_model_dir)['bed file processor']),
+        bed_file=os.path.join(test_data_dir,
+                              get_specs(trained_model_dir)['bed file']),
         chromosome_number='1',
         region_start=189704000 - deletion_padding,
         region_end=189783300 + deletion_padding)
@@ -77,6 +82,7 @@ def main():
     args = parser.parse_args()
 
     test(trained_model_dir=args.trained_model, test_data_dir=args.test_data)
+
 
 if __name__ == '__main__':
     main()
