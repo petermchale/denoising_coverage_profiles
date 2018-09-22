@@ -11,8 +11,8 @@ bed_file_processor='exactDepth_slidingWindow'
 bed_file='facnn-example-1k.per-base.bed.gz'
 region_start=10000
 region_end=$2
-batch_size=256
 learning_rate=$3
+batch_size=$4
 
 source ask.sh
 
