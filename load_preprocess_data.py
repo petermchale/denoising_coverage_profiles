@@ -49,7 +49,8 @@ def load_data(fasta_file, bed_file_processor, bed_file, chromosome_number, regio
     chromosome = _read_fasta(fasta_file, chromosome_number)
 
     data = []
-    for window_start, window_end, window_depth in bed_file_processor(bed_file, chromosome_number, region_start, region_end):
+    for window_start, window_end, window_depth in \
+            bed_file_processor(bed_file, chromosome_number, region_start, region_end):
         if window_depth < 1.0:
             continue
         window_sequence = chromosome[window_start:window_end]

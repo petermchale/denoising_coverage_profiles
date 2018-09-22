@@ -62,9 +62,11 @@ def test(trained_model_dir, test_data_dir):
         bed_file=os.path.join(test_data_dir,
                               get_specs(trained_model_dir)['bed file']),
         chromosome_number='1',
-        region_start=189704000 - deletion_padding,
-        region_end=189783300 + deletion_padding)
+        region_start=189700000,
+        region_end=189706000)
 
+    # region_start = 189704000 - deletion_padding
+    # region_end = 189783300 + deletion_padding)
     with tf.Session() as session:
         graph = _restore_graph_variables(session, trained_model_dir)
         # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/

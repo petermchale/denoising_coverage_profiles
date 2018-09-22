@@ -22,10 +22,6 @@ def _format_axis(axis):
     axis.tick_params(labelsize=tick_fontsize)
 
 
-def _compute_observed_depth_mean(data):
-    return data['observed_depth'].mean()
-
-
 def _compute_corrected_depths(data, observed_depth_mean):
     data['corrected_depth'] = data['observed_depth'] / data['predicted_depth']
     data['normalized_depth'] = data['observed_depth'] / observed_depth_mean
@@ -42,8 +38,8 @@ def _plot_corrected_depths(data, observed_depth_mean, chromosome_number='1', tit
     _format_fig(figure)
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
-    axis.plot(x, data['normalized_depth'], '-', label='normalized depth')
-    axis.plot(x, data['corrected_depth'], '-', label='corrected depth')
+    axis.plot(x, data['normalized_depth'], 'o', label='normalized depth')
+    axis.plot(x, data['corrected_depth'], 'o', label='corrected depth')
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
@@ -64,8 +60,8 @@ def _plot_depths(data, chromosome_number='1', title=None, min_depth=None, max_de
     _format_fig(figure)
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
-    axis.plot(x, data['observed_depth'], '-', label='observed depth')
-    axis.plot(x, data['predicted_depth'], '-', label='predicted depth')
+    axis.plot(x, data['observed_depth'], 'o', label='observed depth')
+    axis.plot(x, data['predicted_depth'], 'o', label='predicted depth')
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
@@ -75,6 +71,10 @@ def _plot_depths(data, chromosome_number='1', title=None, min_depth=None, max_de
     if max_depth:
         plt.ylim(ymax=max_depth)
     plt.show()
+
+
+def _compute_observed_depth_mean(data):
+    return data['observed_depth'].mean()
 
 
 def plot_corrected_depths_train_all(trained_models):
@@ -109,7 +109,7 @@ def plot_depths_train_all(trained_models, min_depth=0, max_depth=100):
                      min_depth=min_depth, max_depth=max_depth)
 
 
-def _plot_costs(log, start_epoch=None, end_epoch=None, max_cost=None, min_cost=None, title=None, loglog=True):
+def _plot_costs(log, minimum_achievable_cost, start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
     if start_epoch:
         log = log[log['epoch'] > start_epoch]
     if end_epoch:
@@ -122,6 +122,7 @@ def _plot_costs(log, start_epoch=None, end_epoch=None, max_cost=None, min_cost=N
     plot = axis.loglog if loglog else axis.plot
     plot(log['epoch'], log['cost_train'], '-o', label='train cost')
     plot(log['epoch'], log['cost_dev'], '-o', label='dev cost')
+    plot(log['epoch'], [minimum_achievable_cost]*len(log['epoch']), '-', label='maximum-likelihood cost')
 
     if start_epoch:
         plt.xlim(xmin=start_epoch)
@@ -138,17 +139,27 @@ def _plot_costs(log, start_epoch=None, end_epoch=None, max_cost=None, min_cost=N
         axis.set_title(title)
     _format_axis(axis)
 
+    plt.grid()
+
     plt.show()
 
 
-def plot_costs_all(trained_models, loglog=True):
+def _minimum_achievable_cost(data):
+    from scipy.special import gammaln
+    import numpy as np
+    observations = data['observed_depth'].values
+    return np.mean(observations - observations * np.log(observations + 1e-10) + gammaln(observations + 1.0))
+
+
+def plot_costs_all(trained_models, start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
     for trained_model in trained_models:
-        _, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
-        _plot_costs(cost_versus_epoch, max_cost=200, min_cost=2, start_epoch=0.01, end_epoch=1000,
+        train_sampled_data, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
+        _plot_costs(cost_versus_epoch, _minimum_achievable_cost(train_sampled_data),
+                    start_epoch, end_epoch, min_cost, max_cost,
                     title=trained_model['annotation'], loglog=loglog)
 
 
-def plot_costs_versus_training_size(trained_models, semilogx=True):
+def plot_costs_versus_training_size(trained_models, semilogx=True, title=None):
     training_set_sizes = []
     costs_train = []
     costs_dev = []
@@ -168,6 +179,9 @@ def plot_costs_versus_training_size(trained_models, semilogx=True):
     plot(training_set_sizes, costs_train, 'o', label='train cost')
     plot(training_set_sizes, costs_dev, 'o', label='dev cost')
     axis.set_xlabel('training set size')
+
+    if title:
+        axis.set_title(title)
 
     _format_axis(axis)
     plt.show()
