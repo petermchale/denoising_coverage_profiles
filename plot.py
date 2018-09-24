@@ -27,7 +27,7 @@ def _compute_corrected_depths(data, observed_depth_mean):
     data['normalized_depth'] = data['observed_depth'] / observed_depth_mean
 
 
-def _plot_corrected_depths(data, observed_depth_mean, chromosome_number='1', title=None, min_y=None, max_y=None):
+def _plot_corrected_depths(data, marker, observed_depth_mean, chromosome_number='1', title=None, min_y=None, max_y=None):
     data = down_sample(data)
 
     _compute_corrected_depths(data, observed_depth_mean)
@@ -38,8 +38,8 @@ def _plot_corrected_depths(data, observed_depth_mean, chromosome_number='1', tit
     _format_fig(figure)
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
-    axis.plot(x, data['normalized_depth'], 'o', label='normalized depth')
-    axis.plot(x, data['corrected_depth'], 'o', label='corrected depth')
+    axis.plot(x, data['normalized_depth'], marker, label='normalized depth')
+    axis.plot(x, data['corrected_depth'], marker, label='corrected depth')
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
@@ -77,28 +77,28 @@ def _compute_observed_depth_mean(data):
     return data['observed_depth'].mean()
 
 
-def plot_corrected_depths_train_all(trained_models):
+def plot_corrected_depths_train_all(trained_models, marker='o'):
     for trained_model in trained_models:
         train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
-        _plot_corrected_depths(train_sampled_data, observed_depth_mean,
+        _plot_corrected_depths(train_sampled_data, marker, observed_depth_mean,
                                title='sample of training data: ' + trained_model['annotation'], min_y=0, max_y=3)
 
 
-def plot_corrected_depths_dev_all(trained_models):
+def plot_corrected_depths_dev_all(trained_models, marker='o'):
     for trained_model in trained_models:
         train_sampled_data, dev_data, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
-        _plot_corrected_depths(dev_data, observed_depth_mean,
+        _plot_corrected_depths(dev_data, marker, observed_depth_mean,
                                title='dev data: ' + trained_model['annotation'], min_y=0, max_y=3)
 
 
-def plot_corrected_depths_test_all(trained_models):
+def plot_corrected_depths_test_all(trained_models, marker='o'):
     for trained_model in trained_models:
         train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         test_data = test_utility.unpickle(trained_model['path'])
-        _plot_corrected_depths(test_data, observed_depth_mean,
+        _plot_corrected_depths(test_data, marker, observed_depth_mean,
                                title='test data: ' + trained_model['annotation'], min_y=0, max_y=2)
 
 
@@ -109,7 +109,7 @@ def plot_depths_train_all(trained_models, min_depth=0, max_depth=100):
                      min_depth=min_depth, max_depth=max_depth)
 
 
-def _plot_costs(log, minimum_achievable_cost, start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
+def _plot_costs(log, marker, minimum_achievable_cost, start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
     if start_epoch:
         log = log[log['epoch'] > start_epoch]
     if end_epoch:
@@ -120,8 +120,8 @@ def _plot_costs(log, minimum_achievable_cost, start_epoch=None, end_epoch=None, 
     axis = fig.add_subplot(111)
 
     plot = axis.loglog if loglog else axis.plot
-    plot(log['epoch'], log['cost_train'], '-o', label='train cost')
-    plot(log['epoch'], log['cost_dev'], '-o', label='dev cost')
+    plot(log['epoch'], log['cost_train'], marker, label='train cost')
+    plot(log['epoch'], log['cost_dev'], marker, label='dev cost')
     plot(log['epoch'], [minimum_achievable_cost]*len(log['epoch']), '-', label='maximum-likelihood cost')
 
     if start_epoch:
@@ -151,10 +151,10 @@ def _minimum_achievable_cost(data):
     return np.mean(observations - observations * np.log(observations + 1e-10) + gammaln(observations + 1.0))
 
 
-def plot_costs_all(trained_models, start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
+def plot_costs_all(trained_models, marker='-', start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
     for trained_model in trained_models:
         train_sampled_data, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
-        _plot_costs(cost_versus_epoch, _minimum_achievable_cost(train_sampled_data),
+        _plot_costs(cost_versus_epoch, marker, _minimum_achievable_cost(train_sampled_data),
                     start_epoch, end_epoch, min_cost, max_cost,
                     title=trained_model['annotation'], loglog=loglog)
 
