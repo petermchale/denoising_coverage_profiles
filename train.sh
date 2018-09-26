@@ -32,7 +32,7 @@ function train {
 	   	--bed_file_name facnn-example-1k.per-base.bed.gz \
 	   	--chromosome_number 1 \
 	   	--region_start 10000 \
-	   	--region_end 149000000 \
+	   	--region_end 249000000 \
 	   	--batch_size $batch_size \
 	   	--learning_rate $learning_rate \
 	   	--number_windows $number_windows \
