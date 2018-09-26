@@ -68,9 +68,8 @@ def _current_time():
     return time.time()
 
 
-def _load_preprocess_data(fasta_file, bed_file_processor, bed_file,
-                          chromosome_number, region_start, region_end, maximum_dev_size=1000):
-    data = load_data(fasta_file, bed_file_processor, bed_file, chromosome_number, region_start, region_end)
+def _load_preprocess_data(args, maximum_dev_size=1000):
+    data = load_data(args)
 
     random_state = 42
     dev_fraction = 0.2
@@ -177,48 +176,43 @@ def _make_serializable(o):
     raise TypeError
 
 
-def train(train_data_dir, trained_model_dir,
-          bed_file_processor, bed_file, region_start, region_end, batch_size, learning_rate,
-          number_epochs=1000, checkpoint_number_batches=5, max_number_batches_to_average=1):
+def train(args, number_epochs=1000, checkpoint_number_batches=5, max_number_batches_to_average=1):
     # !!! use tf.data API when input data is distributed across multiple machines !!!
     # !!! https://www.youtube.com/watch?v=uIcqeP7MFH0 !!!
 
-    _make_models_directory(trained_model_dir)
+    _make_models_directory(args.trained_model_directory)
 
-    # faidx human_g1k_v37.fasta -i chromsizes => chr1 = 249250621 bp
     (data_train, images_train, observed_depths_train,
-     data_dev, images_dev, observed_depths_dev) = _load_preprocess_data(
-        fasta_file=os.path.join(train_data_dir, 'human_g1k_v37.fasta'),
-        bed_file_processor=getattr(load_preprocess_data, bed_file_processor),
-        bed_file=os.path.join(train_data_dir, bed_file),
-        chromosome_number='1',
-        region_start=region_start,
-        region_end=region_end)
+     data_dev, images_dev, observed_depths_dev) = _load_preprocess_data(args)
 
-    graph = Graph(image_width=images_train.shape[1], image_height=images_train.shape[2], learning_rate=learning_rate)
+    graph = Graph(image_width=images_train.shape[1],
+                  image_height=images_train.shape[2],
+                  learning_rate=args.learning_rate)
 
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
 
-        tensorboard_dir = _create_tensorboard_dir(trained_model_dir)
+        tensorboard_dir = _create_tensorboard_dir(args.trained_model_directory)
         # using a context manager, i.e. the "with" syntax,
         # ensures that the FileWriter buffer is emptied, i.e. data are written to disk
         with _writer(tensorboard_dir, 'train', session) as train_sampled_writer, \
                 _writer(tensorboard_dir, 'dev', session) as dev_writer:
 
             specs = {
-                'total number of train examples': len(observed_depths_train),
-                'bed file processor': bed_file_processor,
-                'bed file': bed_file,
-                'training region start': region_start,
-                'training region end': region_end,
-                'number of train examples per batch': batch_size,
-                'number of trainable parameters': _number_trainable_parameters(),
+                'number of train examples': len(observed_depths_train),
                 'number of dev examples': len(observed_depths_dev),
-                'learning rate': learning_rate,
-                'max number of recent batches to average over': max_number_batches_to_average
+                'bed file processor': args.bed_file_processor.__name__,
+                'bed file': args.bed_file_name,
+                'training region start': args.region_start,
+                'training region end': args.region_end,
+                'number of train examples per batch': args.batch_size,
+                'number of trainable parameters': _number_trainable_parameters(),
+                'learning rate': args.learning_rate,
+                'max number of recent batches to average over': max_number_batches_to_average,
+                'chromosome': args.chromosome_number,
+                'window half width': args.window_half_width
             }
-            with open(os.path.join(trained_model_dir, 'specs.json'), 'w') as fp:
+            with open(os.path.join(args.trained_model_directory, 'specs.json'), 'w') as fp:
                 json.dump(specs, fp, indent=4, default=_make_serializable)
 
             data_train_sampled, images_train_sampled, observed_depths_train_sampled = _downsample_preprocess(data_train)
@@ -234,11 +228,11 @@ def train(train_data_dir, trained_model_dir,
             from collections import deque
             cost_train_batch_queue = deque(maxlen=max_number_batches_to_average)
 
-            log_file_name = _create_log_file(trained_model_dir)
+            log_file_name = _create_log_file(args.trained_model_directory)
 
             # https://www.quora.com/What-is-the-difference-between-the-terminating-conditions-or-the-while-loop-of-stochastic-gradient-descent-vs-batch-gradient-descent
             for epoch in range(number_epochs):
-                for batch, fraction_of_epoch in batches(images_train, observed_depths_train, graph, batch_size):
+                for batch, fraction_of_epoch in batches(images_train, observed_depths_train, graph, args.batch_size):
 
                     cost_train_batch, _ = session.run([graph.cost, graph.training_step], feed_dict=batch)
                     cost_train_batch_queue.append(cost_train_batch)
@@ -279,10 +273,11 @@ def train(train_data_dir, trained_model_dir,
 
                         # https://stackoverflow.com/questions/31674557/how-to-append-rows-in-a-pandas-dataframe-in-a-for-loop
                         # https://stackoverflow.com/questions/37009287/using-pandas-append-within-for-loop/37009377
+                        from collections import OrderedDict
                         cost_versus_epoch_float.append(
-                            {'epoch': epoch_float,
-                             'cost_train': cost_train_batch_average,
-                             'cost_dev': cost_dev})
+                            OrderedDict([('epoch', epoch_float),
+                                         ('cost_train', cost_train_batch_average),
+                                         ('cost_dev', cost_dev)]))
 
                         # https://www.tensorflow.org/guide/summaries_and_tensorboard
                         train_sampled_writer.add_summary(
@@ -292,32 +287,40 @@ def train(train_data_dir, trained_model_dir,
                             session.run(graph.cost_summary, feed_dict=feed_dict_dev),
                             epoch)
 
-                        _save_graph_variables(session, trained_model_dir)
+                        _save_graph_variables(session, args.trained_model_directory)
 
                         data_train_sampled['predicted_depth'] = predicted_depths_train_sampled
                         data_dev['predicted_depth'] = predicted_depths_dev
                         pickle(data_train_sampled.sort_values('start'),
                                data_dev.sort_values('start'),
-                               pd.DataFrame(cost_versus_epoch_float), trained_model_dir)
+                               pd.DataFrame(cost_versus_epoch_float), args.trained_model_directory)
+
+
+def _args():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--train_dev_directory')
+    parser.add_argument('--trained_model_directory')
+    parser.add_argument('--bed_file_processor')
+    parser.add_argument('--bed_file_name')
+    parser.add_argument('--chromosome_number', type=int)
+    parser.add_argument('--region_start', type=int)
+    parser.add_argument('--region_end', type=int)
+    parser.add_argument('--batch_size', type=int)
+    parser.add_argument('--learning_rate', type=float)
+    parser.add_argument('--number_windows', type=int)
+    parser.add_argument('--window_half_width', type=int)
+    args = parser.parse_args()
+
+    args.bed_file_processor = getattr(load_preprocess_data, args.bed_file_processor)
+    args.bed_file_name = os.path.join(args.train_dev_directory, args.bed_file_name)
+    args.fasta_file = os.path.join(args.train_dev_directory, 'human_g1k_v37.fasta')
+
+    return args
 
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--train_data')
-    parser.add_argument('--trained_model')
-    parser.add_argument('--bed_file_processor')
-    parser.add_argument('--bed_file')
-    parser.add_argument('--region_start')
-    parser.add_argument('--region_end')
-    parser.add_argument('--batch_size')
-    parser.add_argument('--learning_rate')
-    args = parser.parse_args()
-
-    train(train_data_dir=args.train_data, trained_model_dir=args.trained_model,
-          bed_file_processor=args.bed_file_processor, bed_file=args.bed_file,
-          region_start=int(args.region_start), region_end=int(args.region_end),
-          batch_size=int(args.batch_size), learning_rate=float(args.learning_rate))
+    train(_args())
 
 
 if __name__ == '__main__':

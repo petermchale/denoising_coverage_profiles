@@ -27,7 +27,8 @@ def _compute_corrected_depths(data, observed_depth_mean):
     data['normalized_depth'] = data['observed_depth'] / observed_depth_mean
 
 
-def _plot_corrected_depths(data, marker, observed_depth_mean, chromosome_number='1', title=None, min_y=None, max_y=None):
+def _plot_corrected_depths(data, marker, observed_depth_mean,
+                           chromosome_number='1', title=None, min_y=None, max_y=None):
     data = down_sample(data)
 
     _compute_corrected_depths(data, observed_depth_mean)
@@ -109,7 +110,8 @@ def plot_depths_train_all(trained_models, min_depth=0, max_depth=100):
                      min_depth=min_depth, max_depth=max_depth)
 
 
-def _plot_costs(log, marker, minimum_achievable_cost, start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
+def _plot_costs(log, marker, minimum_achievable_cost,
+                start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
     if start_epoch:
         log = log[log['epoch'] > start_epoch]
     if end_epoch:
@@ -151,7 +153,8 @@ def _minimum_achievable_cost(data):
     return np.mean(observations - observations * np.log(observations + 1e-10) + gammaln(observations + 1.0))
 
 
-def plot_costs_all(trained_models, marker='-', start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
+def plot_costs_all(trained_models, marker='-',
+                   start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
     for trained_model in trained_models:
         train_sampled_data, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
         _plot_costs(cost_versus_epoch, marker, _minimum_achievable_cost(train_sampled_data),

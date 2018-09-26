@@ -46,8 +46,10 @@ def _restore_graph_variables(session, trained_model_dir):
     return tf.get_default_graph()
 
 
-def _load_preprocess_data(fasta_file, bed_file_processor, bed_file, chromosome_number, region_start, region_end):
-    data = load_data(fasta_file, bed_file_processor, bed_file, chromosome_number, region_start, region_end)
+def _load_preprocess_data(fasta_file, bed_file_processor, bed_file,
+                          chromosome_number, region_start, region_end, number_windows):
+    data = load_data(fasta_file, bed_file_processor, bed_file,
+                     chromosome_number, region_start, region_end, number_windows)
 
     # noinspection PyTypeChecker
     return (data,) + preprocess(data)
@@ -63,7 +65,8 @@ def test(trained_model_dir, test_data_dir):
                               get_specs(trained_model_dir)['bed file']),
         chromosome_number='1',
         region_start=189700000,
-        region_end=189706000)
+        region_end=189706000,
+        number_windows=1000)
 
     # region_start = 189704000 - deletion_padding
     # region_end = 189783300 + deletion_padding)
