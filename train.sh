@@ -36,8 +36,8 @@ function train {
 	   	--batch_size $batch_size \
 	   	--learning_rate $learning_rate \
 	   	--number_windows $number_windows \
-	   	--window_half_width $window_half_width
-	   	< /dev/null > $trained_model/train.out 2> $trained_model/train.err & 
+	   	--window_half_width $window_half_width \
+	   	< /dev/null > $trained_model_directory/train.out 2> $trained_model_directory/train.err & 
 }
 
 # cluster computing
