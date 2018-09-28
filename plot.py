@@ -27,13 +27,15 @@ def _compute_corrected_depths(data, observed_depth_mean):
     data['normalized_depth'] = data['observed_depth'] / observed_depth_mean
 
 
+# avoid the tendency to lump parameters into **kwargs:
+# https://stackoverflow.com/questions/1098549/proper-way-to-use-kwargs-in-python
 def _plot_corrected_depths(data, marker, observed_depth_mean,
-                           chromosome_number='1', title=None, min_y=None, max_y=None):
+                           chromosome_number=1, title=None, min_y=None, max_y=None):
     data = down_sample(data)
 
     _compute_corrected_depths(data, observed_depth_mean)
 
-    data = data[data['chromosome_number'] == chromosome_number]
+    data = data[data['chromosome_number'].astype('int') == chromosome_number]
 
     figure = plt.figure()
     _format_fig(figure)
@@ -52,7 +54,8 @@ def _plot_corrected_depths(data, marker, observed_depth_mean,
     plt.show()
 
 
-def _plot_depths(data, chromosome_number='1', title=None, min_depth=None, max_depth=None):
+def _plot_depths(data,
+                 chromosome_number='1', title=None, min_depth=None, max_depth=None):
     data = down_sample(data)
 
     data = data[data['chromosome_number'] == chromosome_number]
@@ -78,7 +81,8 @@ def _compute_observed_depth_mean(data):
     return data['observed_depth'].mean()
 
 
-def plot_corrected_depths_train_all(trained_models, marker='o'):
+def plot_corrected_depths_train_all(trained_models,
+                                    marker='o'):
     for trained_model in trained_models:
         train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
@@ -86,7 +90,8 @@ def plot_corrected_depths_train_all(trained_models, marker='o'):
                                title='sample of training data: ' + trained_model['annotation'], min_y=0, max_y=3)
 
 
-def plot_corrected_depths_dev_all(trained_models, marker='o'):
+def plot_corrected_depths_dev_all(trained_models,
+                                  marker='o'):
     for trained_model in trained_models:
         train_sampled_data, dev_data, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
@@ -94,7 +99,8 @@ def plot_corrected_depths_dev_all(trained_models, marker='o'):
                                title='dev data: ' + trained_model['annotation'], min_y=0, max_y=3)
 
 
-def plot_corrected_depths_test_all(trained_models, marker='o'):
+def plot_corrected_depths_test_all(trained_models,
+                                   marker='o'):
     for trained_model in trained_models:
         train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
@@ -103,10 +109,12 @@ def plot_corrected_depths_test_all(trained_models, marker='o'):
                                title='test data: ' + trained_model['annotation'], min_y=0, max_y=2)
 
 
-def plot_depths_train_all(trained_models, min_depth=0, max_depth=100):
+def plot_depths_train_all(trained_models,
+                          min_depth=0, max_depth=100):
     for trained_model in trained_models:
         train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
-        _plot_depths(train_sampled_data, title='sample of training data: ' + trained_model['annotation'],
+        _plot_depths(train_sampled_data,
+                     title='sample of training data: ' + trained_model['annotation'],
                      min_depth=min_depth, max_depth=max_depth)
 
 
@@ -153,16 +161,16 @@ def _minimum_achievable_cost(data):
     return np.mean(observations - observations * np.log(observations + 1e-10) + gammaln(observations + 1.0))
 
 
-def plot_costs_all(trained_models, marker='-',
-                   start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
+def plot_costs_all(trained_models,
+                   marker='-', start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
     for trained_model in trained_models:
         train_sampled_data, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
         _plot_costs(cost_versus_epoch, marker, _minimum_achievable_cost(train_sampled_data),
-                    start_epoch, end_epoch, min_cost, max_cost,
-                    title=trained_model['annotation'], loglog=loglog)
+                    start_epoch, end_epoch, min_cost, max_cost, title=trained_model['annotation'], loglog=loglog)
 
 
-def plot_costs_versus_training_size(trained_models, semilogx=True, title=None):
+def plot_costs_versus_training_size(trained_models,
+                                    semilogx=True, title=None):
     training_set_sizes = []
     costs_train = []
     costs_dev = []
