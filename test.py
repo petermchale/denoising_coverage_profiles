@@ -46,47 +46,71 @@ def _restore_graph_variables(session, trained_model_dir):
     return tf.get_default_graph()
 
 
-def _load_preprocess_data(fasta_file, bed_file_processor, bed_file,
-                          chromosome_number, region_start, region_end, number_windows):
-    data = load_data(fasta_file, bed_file_processor, bed_file,
-                     chromosome_number, region_start, region_end, number_windows)
+def _load_preprocess_data(args):
+    data = load_data(args)
 
     # noinspection PyTypeChecker
     return (data,) + preprocess(data)
 
 
-def test(trained_model_dir, test_data_dir):
-    deletion_padding = 50000
-    data_test, images_test, observed_depths_test = _load_preprocess_data(
-        fasta_file=os.path.join(test_data_dir, 'human_g1k_v37.fasta'),
-        bed_file_processor=getattr(load_preprocess_data,
-                                   get_specs(trained_model_dir)['bed file processor']),
-        bed_file=os.path.join(test_data_dir,
-                              get_specs(trained_model_dir)['bed file']),
-        chromosome_number='1',
-        region_start=189700000,
-        region_end=189706000,
-        number_windows=1000)
+def test(args):
+    data_test, images_test, observed_depths_test = _load_preprocess_data(args)
+    print('data has been read in')
 
-    # region_start = 189704000 - deletion_padding
-    # region_end = 189783300 + deletion_padding)
     with tf.Session() as session:
-        graph = _restore_graph_variables(session, trained_model_dir)
+        graph = _restore_graph_variables(session, args.trained_model_directory)
+        print('graph has been restored')
         # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/
         data_test['predicted_depth'] = session.run(graph.get_tensor_by_name('output_layer/predictions:0'),
                                                    {graph.get_tensor_by_name('input_layer/X:0'): images_test,
                                                     graph.get_tensor_by_name('cost/y:0'): observed_depths_test})
-        pickle(data_test, trained_model_dir)
+        print('predictions have been made')
+        pickle(data_test, args.trained_model_directory)
+        print('predictions have been stored')
+
+
+def _args():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test_directory')
+    parser.add_argument('--trained_model_directory')
+    parser.add_argument('--chromosome_number', type=int)
+    parser.add_argument('--region_start', type=int)
+    parser.add_argument('--region_end', type=int)
+    parser.add_argument('--number_windows', type=int)
+    parser.add_argument('--max_y', type=float)
+    parser.add_argument('--normalized_depths_only', action="store_true", default=False)
+
+    # high-quality deletion
+    # region_start = 189654000 (189704000 - 50000)
+    # region_end = 189833300 (189783300 + 50000)
+
+    args = parser.parse_args()
+
+    args.bed_file_processor = getattr(load_preprocess_data,
+                                      get_specs(args.trained_model_directory)['bed file processor'])
+    args.bed_file_name = get_specs(args.trained_model_directory)['bed file']
+    args.fasta_file = os.path.join(args.test_directory, 'human_g1k_v37.fasta')
+    args.window_half_width = get_specs(args.trained_model_directory)['window half width']
+
+    return args
+
+
+def _trained_models(args):
+    return [{'path': args.trained_model_directory,
+             'annotation': '{}:{}-{}'.format(args.chromosome_number,
+                                             args.region_start,
+                                             args.region_end)}]
 
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--trained_model')
-    parser.add_argument('--test_data')
-    args = parser.parse_args()
+    # test(_args())
 
-    test(trained_model_dir=args.trained_model, test_data_dir=args.test_data)
+    print('creating plot...')
+    from plot import plot_corrected_depths_test_all
+    plot_corrected_depths_test_all(_trained_models(_args()),
+                                   max_y=_args().max_y,
+                                   normalized_depths_only=_args().normalized_depths_only)
 
 
 if __name__ == '__main__':

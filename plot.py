@@ -30,7 +30,7 @@ def _compute_corrected_depths(data, observed_depth_mean):
 # avoid the tendency to lump parameters into **kwargs:
 # https://stackoverflow.com/questions/1098549/proper-way-to-use-kwargs-in-python
 def _plot_corrected_depths(data, marker, observed_depth_mean,
-                           chromosome_number=1, title=None, min_y=None, max_y=None):
+                           chromosome_number=1, title=None, min_y=None, max_y=None, normalized_depths_only=False):
     data = down_sample(data)
 
     _compute_corrected_depths(data, observed_depth_mean)
@@ -42,7 +42,8 @@ def _plot_corrected_depths(data, marker, observed_depth_mean,
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
     axis.plot(x, data['normalized_depth'], marker, label='normalized depth')
-    axis.plot(x, data['corrected_depth'], marker, label='corrected depth')
+    if not normalized_depths_only:
+        axis.plot(x, data['corrected_depth'], marker, label='corrected depth')
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
@@ -55,10 +56,10 @@ def _plot_corrected_depths(data, marker, observed_depth_mean,
 
 
 def _plot_depths(data,
-                 chromosome_number='1', title=None, min_depth=None, max_depth=None):
+                 chromosome_number=1, title=None, min_depth=None, max_depth=None):
     data = down_sample(data)
 
-    data = data[data['chromosome_number'] == chromosome_number]
+    data = data[data['chromosome_number'].astype('int') == chromosome_number]
 
     figure = plt.figure()
     _format_fig(figure)
@@ -100,13 +101,14 @@ def plot_corrected_depths_dev_all(trained_models,
 
 
 def plot_corrected_depths_test_all(trained_models,
-                                   marker='o'):
+                                   marker='o', min_y=0, max_y=2, normalized_depths_only=False):
     for trained_model in trained_models:
         train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         test_data = test_utility.unpickle(trained_model['path'])
         _plot_corrected_depths(test_data, marker, observed_depth_mean,
-                               title='test data: ' + trained_model['annotation'], min_y=0, max_y=2)
+                               title='test data: ' + trained_model['annotation'], min_y=min_y, max_y=max_y,
+                               normalized_depths_only=normalized_depths_only)
 
 
 def plot_depths_train_all(trained_models,
@@ -118,7 +120,7 @@ def plot_depths_train_all(trained_models,
                      min_depth=min_depth, max_depth=max_depth)
 
 
-def _plot_costs(log, marker, minimum_achievable_cost,
+def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
                 start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
     if start_epoch:
         log = log[log['epoch'] > start_epoch]
@@ -133,6 +135,7 @@ def _plot_costs(log, marker, minimum_achievable_cost,
     plot(log['epoch'], log['cost_train'], marker, label='train cost')
     plot(log['epoch'], log['cost_dev'], marker, label='dev cost')
     plot(log['epoch'], [minimum_achievable_cost]*len(log['epoch']), '-', label='maximum-likelihood cost')
+    plot(log['epoch'], [feature_independent_cost]*len(log['epoch']), '-k', label='mean-depth cost')
 
     if start_epoch:
         plt.xlim(xmin=start_epoch)
@@ -154,18 +157,30 @@ def _plot_costs(log, marker, minimum_achievable_cost,
     plt.show()
 
 
-def _minimum_achievable_cost(data):
-    from scipy.special import gammaln
+def _cost(predictions, observations):
     import numpy as np
+    from scipy.special import gammaln
+    return np.mean(predictions - observations * np.log(predictions + 1e-10) + gammaln(observations + 1.0))
+
+
+def _minimum_achievable_cost(data):
     observations = data['observed_depth'].values
-    return np.mean(observations - observations * np.log(observations + 1e-10) + gammaln(observations + 1.0))
+    return _cost(predictions=observations, observations=observations)
+
+
+def _feature_independent_cost(data, observed_depth_mean):
+    observations = data['observed_depth'].values
+    return _cost(predictions=observed_depth_mean, observations=observations)
 
 
 def plot_costs_all(trained_models,
                    marker='-', start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
     for trained_model in trained_models:
         train_sampled_data, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
-        _plot_costs(cost_versus_epoch, marker, _minimum_achievable_cost(train_sampled_data),
+        observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
+        _plot_costs(cost_versus_epoch, marker,
+                    _minimum_achievable_cost(train_sampled_data),
+                    _feature_independent_cost(train_sampled_data, observed_depth_mean),
                     start_epoch, end_epoch, min_cost, max_cost, title=trained_model['annotation'], loglog=loglog)
 
 
