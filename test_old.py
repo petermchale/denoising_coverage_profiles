@@ -9,8 +9,8 @@ import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-import load_preprocess_data
-from load_preprocess_data import load_data, preprocess
+import load_preprocess_data_old
+from load_preprocess_data_old import load_data, preprocess
 from test_utility import pickle
 from utility import get_specs
 
@@ -80,14 +80,16 @@ def _args():
     parser.add_argument('--number_windows', type=int)
     parser.add_argument('--max_y', type=float)
     parser.add_argument('--normalized_depths_only', action="store_true", default=False)
+    parser.add_argument('--include_window')
 
     # high-quality deletion
-    # region_start = 189654000 (189704000 - 50000)
-    # region_end = 189833300 (189783300 + 50000)
+    # region_start = (189704000 - 100000)
+    # region_end = (189783300 + 100000)
 
     args = parser.parse_args()
 
-    args.bed_file_processor = getattr(load_preprocess_data,
+    args.include_window = getattr(load_preprocess_data_old, args.include_window)
+    args.bed_file_processor = getattr(load_preprocess_data_old,
                                       get_specs(args.trained_model_directory)['bed file processor'])
     args.bed_file_name = get_specs(args.trained_model_directory)['bed file']
     args.fasta_file = os.path.join(args.test_directory, 'human_g1k_v37.fasta')
@@ -104,7 +106,7 @@ def _trained_models(args):
 
 
 def main():
-    # test(_args())
+    test(_args())
 
     print('creating plot...')
     from plot import plot_corrected_depths_test_all

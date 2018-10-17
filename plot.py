@@ -5,11 +5,11 @@ import train_utility
 import test_utility
 
 
-def _format_fig(fig):
-    fig.set_size_inches(15, 4)
+def format_fig(fig, height=4):
+    fig.set_size_inches(15, height)
 
 
-def _format_axis(axis):
+def format_axis(axis):
     label_fontsize = 18
     legend_fontsize = 18
     tick_fontsize = 16
@@ -30,7 +30,8 @@ def _compute_corrected_depths(data, observed_depth_mean):
 # avoid the tendency to lump parameters into **kwargs:
 # https://stackoverflow.com/questions/1098549/proper-way-to-use-kwargs-in-python
 def _plot_corrected_depths(data, marker, observed_depth_mean,
-                           chromosome_number=1, title=None, min_y=None, max_y=None, normalized_depths_only=False):
+                           chromosome_number=1, title=None, min_y=None, max_y=None, normalized_depths_only=False,
+                           figure_file_name=None):
     data = down_sample(data)
 
     _compute_corrected_depths(data, observed_depth_mean)
@@ -38,7 +39,7 @@ def _plot_corrected_depths(data, marker, observed_depth_mean,
     data = data[data['chromosome_number'].astype('int') == chromosome_number]
 
     figure = plt.figure()
-    _format_fig(figure)
+    format_fig(figure)
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
     axis.plot(x, data['normalized_depth'], marker, label='normalized depth')
@@ -47,12 +48,15 @@ def _plot_corrected_depths(data, marker, observed_depth_mean,
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
-    _format_axis(axis)
+    format_axis(axis)
     if min_y is not None:
         plt.ylim(ymin=min_y)
     if max_y:
         plt.ylim(ymax=max_y)
-    plt.show()
+    if figure_file_name:
+        plt.savefig(figure_file_name, bbox_inches='tight')
+    else:
+        plt.show()
 
 
 def _plot_depths(data,
@@ -62,7 +66,7 @@ def _plot_depths(data,
     data = data[data['chromosome_number'].astype('int') == chromosome_number]
 
     figure = plt.figure()
-    _format_fig(figure)
+    format_fig(figure)
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
     axis.plot(x, data['observed_depth'], 'o', label='observed depth')
@@ -70,7 +74,7 @@ def _plot_depths(data,
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
-    _format_axis(axis)
+    format_axis(axis)
     if min_depth is not None:
         plt.ylim(ymin=min_depth)
     if max_depth:
@@ -92,23 +96,28 @@ def plot_corrected_depths_train_all(trained_models,
 
 
 def plot_corrected_depths_dev_all(trained_models,
-                                  marker='o'):
+                                  marker='o', show_title=True):
     for trained_model in trained_models:
         train_sampled_data, dev_data, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
+        title = 'dev data: ' + trained_model['annotation'] if show_title else ''
+        figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
         _plot_corrected_depths(dev_data, marker, observed_depth_mean,
-                               title='dev data: ' + trained_model['annotation'], min_y=0, max_y=3)
+                               title=title, min_y=0, max_y=3, figure_file_name=figure_file_name)
 
 
 def plot_corrected_depths_test_all(trained_models,
-                                   marker='o', min_y=0, max_y=2, normalized_depths_only=False):
+                                   marker='o', min_y=0, max_y=2, normalized_depths_only=False, show_title=True):
     for trained_model in trained_models:
         train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         test_data = test_utility.unpickle(trained_model['path'])
+        title = 'test data: ' + trained_model['annotation'] if show_title else ''
+        figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
         _plot_corrected_depths(test_data, marker, observed_depth_mean,
-                               title='test data: ' + trained_model['annotation'], min_y=min_y, max_y=max_y,
-                               normalized_depths_only=normalized_depths_only)
+                               title=title, min_y=min_y, max_y=max_y,
+                               normalized_depths_only=normalized_depths_only,
+                               figure_file_name=figure_file_name)
 
 
 def plot_depths_train_all(trained_models,
@@ -128,7 +137,7 @@ def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
         log = log[log['epoch'] < end_epoch]
 
     fig = plt.figure()
-    _format_fig(fig)
+    format_fig(fig)
     axis = fig.add_subplot(111)
 
     plot = axis.loglog if loglog else axis.plot
@@ -150,7 +159,7 @@ def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
     axis.set_xlabel('epoch')
     if title:
         axis.set_title(title)
-    _format_axis(axis)
+    format_axis(axis)
 
     plt.grid()
 
@@ -197,7 +206,7 @@ def plot_costs_versus_training_size(trained_models,
         costs_dev.append(last_record['cost_dev'])
 
     fig = plt.figure()
-    _format_fig(fig)
+    format_fig(fig)
     axis = fig.add_subplot(111)
 
     plot = axis.semilogx if semilogx else axis.plot
@@ -209,5 +218,5 @@ def plot_costs_versus_training_size(trained_models,
     if title:
         axis.set_title(title)
 
-    _format_axis(axis)
+    format_axis(axis)
     plt.show()

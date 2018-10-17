@@ -201,16 +201,16 @@ def train(args, number_epochs=1000, checkpoint_number_batches=5, max_number_batc
             specs = {
                 'number of train examples': len(observed_depths_train),
                 'number of dev examples': len(observed_depths_dev),
-                'bed file processor': args.bed_file_processor.__name__,
-                'bed file': args.bed_file_name,
-                'training region start': args.region_start,
-                'training region end': args.region_end,
+                'depth file name': args.depth_file_name,
+                'fold reduction of sample size': args.fold_reduction_of_sample_size,
+                'resampling target': args.resampling_target_string,
                 'number of train examples per batch': args.batch_size,
                 'number of trainable parameters': _number_trainable_parameters(),
                 'learning rate': args.learning_rate,
                 'max number of recent batches to average over': max_number_batches_to_average,
                 'chromosome': args.chromosome_number,
-                'window half width': args.window_half_width
+                'window half width': args.window_half_width,
+                'function to filter examples': args.filter_examples.__name__
             }
             with open(os.path.join(args.trained_model_directory, 'specs.json'), 'w') as fp:
                 json.dump(specs, fp, indent=4, default=_make_serializable)
@@ -296,24 +296,34 @@ def train(args, number_epochs=1000, checkpoint_number_batches=5, max_number_batc
                                pd.DataFrame(cost_versus_epoch_float), args.trained_model_directory)
 
 
+def _named_tuple(dictionary):
+    from collections import namedtuple
+    return namedtuple('Struct', dictionary.keys())(*dictionary.values())
+
+
 def _args():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_dev_directory')
     parser.add_argument('--trained_model_directory')
-    parser.add_argument('--bed_file_processor')
-    parser.add_argument('--bed_file_name')
+    parser.add_argument('--depth_file_name')
     parser.add_argument('--chromosome_number', type=int)
-    parser.add_argument('--region_start', type=int)
-    parser.add_argument('--region_end', type=int)
+    parser.add_argument('--fold_reduction_of_sample_size', type=float)
+    parser.add_argument('--window_half_width', type=int)
+    parser.add_argument('--resampling_target', type=json.loads)
+    parser.add_argument('--filter_examples')
     parser.add_argument('--batch_size', type=int)
     parser.add_argument('--learning_rate', type=float)
-    parser.add_argument('--number_windows', type=int)
-    parser.add_argument('--window_half_width', type=int)
     args = parser.parse_args()
 
-    args.bed_file_processor = getattr(load_preprocess_data, args.bed_file_processor)
-    args.bed_file_name = os.path.join(args.train_dev_directory, args.bed_file_name)
+
+    args.depth_file_name = os.path.join(args.train_dev_directory, args.depth_file_name)
+
+    args.resampling_target_string = json.dumps(args.resampling_target)
+    args.resampling_target['function'] = getattr(load_preprocess_data, args.resampling_target['function'])
+    args.resampling_target = _named_tuple(args.resampling_target)
+
+    args.filter_examples = getattr(load_preprocess_data, args.filter_examples)
     args.fasta_file = os.path.join(args.train_dev_directory, 'human_g1k_v37.fasta')
 
     return args

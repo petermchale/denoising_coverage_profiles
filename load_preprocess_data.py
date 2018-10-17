@@ -1,5 +1,5 @@
 from pyfaidx import Fasta
-import subprocess
+import numpy as np
 
 # https://stackoverflow.com/questions/40845304/runtimewarning-numpy-dtype-size-changed-may-indicate-binary-incompatibility
 import warnings
@@ -14,89 +14,81 @@ def _read_fasta(args):
     return str(fasta[str(args.chromosome_number)]).upper()
 
 
-def _create_process(args):
-    if args.region_start is None:
-        region = args.chromosome_number
-    else:
-        region = '{}:{}-{}'.format(args.chromosome_number, args.region_start + 1, args.region_end)
-    command = 'tabix {} {}'.format(args.bed_file_name, region)
-    # make code compatible with python 2 and 3:
-    # https://stackoverflow.com/questions/38181494/what-is-the-difference-between-using-universal-newlines-true-with-bufsize-1-an
-    # https://stackoverflow.com/questions/37500410/python-2-to-3-conversion-iterating-over-lines-in-subprocess-stdout
-    return subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+def uniform_distribution(x, args):
+    answer = np.zeros_like(x, dtype=float)
+    answer[x < args.d] = 1.0 / float(args.d)
+    return answer
 
 
-def averageDepth_nonOverlappingWindows(args):
-    process = _create_process(args)
-    for line in process.stdout:
-        _, window_start, window_end, window_depth = line.rstrip().split('\t')
-        yield int(window_start), int(window_end), float(window_depth)
-    process.wait()
-
-
-def exactDepth_slidingWindow(args):
-    process = _create_process(args)
-    for line in process.stdout:
-        _, perBase_window_start, perBase_window_end, perBase_window_depth = line.rstrip().split('\t')
-        for window_center in np.arange(int(perBase_window_start), int(perBase_window_end)):
-            L = 500
-            window_start = window_center - L
-            window_end = window_center + L + 1
-            if window_start >= args.region_start and window_end <= args.region_end:
-                yield window_start, window_end, float(perBase_window_depth)
-    process.wait()
-
-
-def _windowCenter_in_perBaseWindow(index, window_centers, perBase_window_end):
+def humped_distribution(x, args):
     try:
-        return window_centers[index] < int(perBase_window_end)
-    except IndexError:
-        return False
+        assert (args.c < (1 / float(args.d1 + args.d3 - args.d2)) + 1e-8)
+    except AssertionError:
+        print('c is too large!')
+        raise AssertionError
+    answer = np.zeros_like(x, dtype=float)
+    answer[x < args.d1] = args.c
+    answer[(x >= args.d1) & (x < args.d2)] = \
+        (1 - args.c * (args.d1 + args.d3 - args.d2)) / float(args.d2 - args.d1)
+    answer[(x >= args.d2) & (x < args.d3)] = args.c
+    return answer
 
 
-def exactDepth_randomWindow(args):
-    process = _create_process(args)
-    np.random.seed(1)
-    window_centers = np.random.choice(np.arange(args.region_start, args.region_end),
-                                      size=args.number_windows,
-                                      replace=False)
-    window_centers.sort()
+def compute_empirical_pmf(depths):
+    unique_depths, counts = np.unique(depths, return_counts=True)
+    new_counts = np.zeros(unique_depths.max() + 1, dtype=int)
+    new_counts[unique_depths] = counts
+    return new_counts / float(len(depths))
 
-    index = 0
-    for line in process.stdout:
-        _, perBase_window_start, perBase_window_end, perBase_window_depth = line.rstrip().split('\t')
-        while _windowCenter_in_perBaseWindow(index, window_centers, perBase_window_end):
-            window_start = window_centers[index] - args.window_half_width
-            window_end = window_centers[index] + args.window_half_width + 1
-            if window_start >= args.region_start and window_end <= args.region_end:
-                yield window_start, window_end, float(perBase_window_depth)
-            index += 1
-    process.wait()
+
+def compute_acceptance_probability(depths, args):
+    proposal_distribution = compute_empirical_pmf(depths)
+    ks = np.arange(len(proposal_distribution))
+    target_distribution = args.resampling_target.function(ks, args.resampling_target)
+    return target_distribution / (args.fold_reduction_of_sample_size * proposal_distribution)
+
+
+def resample(depths, args):
+    if args.resampling_target:
+        random_numbers = np.random.uniform(low=0.0, high=1.0, size=len(depths))
+        acceptance_probability = compute_acceptance_probability(depths, args)
+        chosen = random_numbers < acceptance_probability[depths]
+    else:
+        # sample (uniformly) WITHOUT replacement so no two training examples are identical
+        chosen = np.random.choice(np.arange(len(depths)),
+                                  size=int(len(depths) / float(args.fold_reduction_of_sample_size)),
+                                  replace=False)
+    positions = np.arange(len(depths))
+    return positions[chosen], depths[chosen]
+
+
+def _read_depths(args):
+    assert (str(args.chromosome_number) == '22')
+    depths = np.fromfile(args.depth_file_name, dtype=np.int32)
+    return depths, len(depths)
+
+
+def filter_examples(df, maximum_position):
+    return df[(df['start'] >= 0) &
+              (df['end'] < maximum_position) &
+              (df['sequence'].apply(lambda s: s.count('N')) <= 2) &
+              (df['observed_depth'] > 0)]
 
 
 def load_data(args):
+    depths, maximum_position = _read_depths(args)
+    centers, depths = resample(depths, args)
+    starts = centers - args.window_half_width
+    ends = centers + args.window_half_width + 1
     chromosome = _read_fasta(args)
-
-    data = []
-    for window_start, window_end, window_depth in args.bed_file_processor(args):
-        if window_depth < 1.0:
-            continue
-        window_sequence = chromosome[window_start:window_end]
-        if window_sequence.count('N') > 2:
-            continue
-        # https://stackoverflow.com/questions/31674557/how-to-append-rows-in-a-pandas-dataframe-in-a-for-loop
-        # https://stackoverflow.com/questions/37009287/using-pandas-append-within-for-loop/37009377
-        from collections import OrderedDict
-        data.append(OrderedDict([('chromosome_number', args.chromosome_number),
-                                 ('start', window_start),
-                                 ('end', window_end),
-                                 ('sequence', window_sequence),
-                                 ('observed_depth', window_depth)]))
-
-    return pd.DataFrame(data)
-
-
-import numpy as np
+    sequences = [chromosome[s:e] for s, e in zip(starts, ends)]
+    from collections import OrderedDict
+    data = pd.DataFrame(OrderedDict([('chromosome_number', args.chromosome_number),
+                                     ('start', starts),
+                                     ('end', ends),
+                                     ('sequence', sequences),
+                                     ('observed_depth', depths)]))
+    return args.filter_examples(data, maximum_position)
 
 
 def _one_hot_encode(sequence):
