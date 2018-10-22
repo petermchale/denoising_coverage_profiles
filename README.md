@@ -20,7 +20,9 @@ Any methods developed will be highly generalizable to other seq protocols, e.g.,
 # Results 
 
 [Theory and general results](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/main.ipynb)
+
 [Signal to noise analysis](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/grant/signalToNoise.ipynb)
+
 [Rejection sampling](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/rejection_sampling.ipynb)
 
 
