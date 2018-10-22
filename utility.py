@@ -42,6 +42,11 @@ def down_sample(data, number_samples=1000):
 import json
 
 
-def get_specs(trained_model_path):
-    with open(os.path.join(trained_model_path, 'specs.json'), 'r') as fp:
+def get_args(trained_model_path):
+    with open(os.path.join(trained_model_path, 'args.json'), 'r') as fp:
         return json.load(fp)
+
+
+def named_tuple(dictionary):
+    from collections import namedtuple
+    return namedtuple('Struct', dictionary.keys())(*dictionary.values())

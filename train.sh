@@ -6,10 +6,8 @@
 # export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 
 trained_model_directory=$1 
-batch_size=$2
-learning_rate=$3
-number_windows=$4
-window_half_width=$5
+filter=$2 
+resampling_target_file_name=$3
 
 source ask.sh
 
@@ -28,16 +26,17 @@ function train {
    	nohup $1 nice -19 python train.py \
 	   	--train_dev_directory ../data/train_dev_data \
 	   	--trained_model_directory $trained_model_directory \
-	   	--bed_file_processor exactDepth_randomWindow \
-	   	--bed_file_name facnn-example-1k.per-base.bed.gz \
-	   	--chromosome_number 1 \
-	   	--region_start 10000 \
-	   	--region_end 249000000 \
-	   	--batch_size $batch_size \
-	   	--learning_rate $learning_rate \
-	   	--number_windows $number_windows \
-	   	--window_half_width $window_half_width \
-	   	< /dev/null > $trained_model_directory/train.out 2> $trained_model_directory/train.err & 
+		--depth_file_name 100.multicov.bin \
+	   	--chromosome_number 22 \
+	   	--start 20000000 \
+	   	--end 50000000 \
+	   	--batch_size 256 \
+	   	--learning_rate 0.0005 \
+	   	--window_half_width 500 \
+	   	--fold_reduction_of_sample_size 200 \
+		--filter $filter \
+		--resampling_target_file_name $resampling_target_file_name \
+		< /dev/null > $trained_model_directory/train.out 2> $trained_model_directory/train.err & 
 }
 
 # cluster computing

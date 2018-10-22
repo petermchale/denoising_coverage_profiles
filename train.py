@@ -20,8 +20,8 @@ from sklearn.model_selection import train_test_split
 from predict import predict
 import load_preprocess_data
 from load_preprocess_data import load_data, preprocess
-from utility import append_log_file, silent_remove, down_sample
-from train_utility import pickle
+from utility import append_log_file, silent_remove, down_sample, named_tuple
+from utility_train import pickle
 
 
 def _cost(predictions, observations):
@@ -176,7 +176,7 @@ def _make_serializable(o):
     raise TypeError
 
 
-def train(args, number_epochs=1000, checkpoint_number_batches=5, max_number_batches_to_average=1):
+def train(args, args_to_save, number_epochs=1000, checkpoint_number_batches=5, max_number_batches_to_average=1):
     # !!! use tf.data API when input data is distributed across multiple machines !!!
     # !!! https://www.youtube.com/watch?v=uIcqeP7MFH0 !!!
 
@@ -198,22 +198,14 @@ def train(args, number_epochs=1000, checkpoint_number_batches=5, max_number_batc
         with _writer(tensorboard_dir, 'train', session) as train_sampled_writer, \
                 _writer(tensorboard_dir, 'dev', session) as dev_writer:
 
-            specs = {
+            args_to_save.update({
                 'number of train examples': len(observed_depths_train),
                 'number of dev examples': len(observed_depths_dev),
-                'depth file name': args.depth_file_name,
-                'fold reduction of sample size': args.fold_reduction_of_sample_size,
-                'resampling target': args.resampling_target_string,
-                'number of train examples per batch': args.batch_size,
                 'number of trainable parameters': _number_trainable_parameters(),
-                'learning rate': args.learning_rate,
                 'max number of recent batches to average over': max_number_batches_to_average,
-                'chromosome': args.chromosome_number,
-                'window half width': args.window_half_width,
-                'function to filter examples': args.filter_examples.__name__
-            }
-            with open(os.path.join(args.trained_model_directory, 'specs.json'), 'w') as fp:
-                json.dump(specs, fp, indent=4, default=_make_serializable)
+            })
+            with open(os.path.join(args.trained_model_directory, 'args.json'), 'w') as fp:
+                json.dump(args_to_save, fp, indent=4, default=_make_serializable)
 
             data_train_sampled, images_train_sampled, observed_depths_train_sampled = _downsample_preprocess(data_train)
             feed_dict_train_sampled = {graph.X: images_train_sampled, graph.y: observed_depths_train_sampled}
@@ -296,11 +288,6 @@ def train(args, number_epochs=1000, checkpoint_number_batches=5, max_number_batc
                                pd.DataFrame(cost_versus_epoch_float), args.trained_model_directory)
 
 
-def _named_tuple(dictionary):
-    from collections import namedtuple
-    return namedtuple('Struct', dictionary.keys())(*dictionary.values())
-
-
 def _args():
     import argparse
     parser = argparse.ArgumentParser()
@@ -308,29 +295,38 @@ def _args():
     parser.add_argument('--trained_model_directory')
     parser.add_argument('--depth_file_name')
     parser.add_argument('--chromosome_number', type=int)
+    parser.add_argument('--start', type=int)
+    parser.add_argument('--end', type=int)
     parser.add_argument('--fold_reduction_of_sample_size', type=float)
     parser.add_argument('--window_half_width', type=int)
-    parser.add_argument('--resampling_target', type=json.loads)
-    parser.add_argument('--filter_examples')
+    parser.add_argument('--resampling_target_file_name')
+    parser.add_argument('--filter')
     parser.add_argument('--batch_size', type=int)
     parser.add_argument('--learning_rate', type=float)
     args = parser.parse_args()
 
+    args_to_save = args.__dict__.copy()
 
     args.depth_file_name = os.path.join(args.train_dev_directory, args.depth_file_name)
-
-    args.resampling_target_string = json.dumps(args.resampling_target)
-    args.resampling_target['function'] = getattr(load_preprocess_data, args.resampling_target['function'])
-    args.resampling_target = _named_tuple(args.resampling_target)
-
-    args.filter_examples = getattr(load_preprocess_data, args.filter_examples)
     args.fasta_file = os.path.join(args.train_dev_directory, 'human_g1k_v37.fasta')
 
-    return args
+    # this allows us to pass "None" to bash script to indicate that there is no json file describing a resampling scheme
+    if args.resampling_target_file_name == "None":
+        args.resampling_target_file_name = None
+
+    if args.resampling_target_file_name:
+        with open(args.resampling_target_file_name, 'r') as fp:
+            args.resampling_target = json.load(fp)
+            args.resampling_target['function'] = getattr(load_preprocess_data, args.resampling_target['function'])
+            args.resampling_target = named_tuple(args.resampling_target)
+
+    args.filter = getattr(load_preprocess_data, args.filter)
+
+    return named_tuple(args.__dict__), args_to_save
 
 
 def main():
-    train(_args())
+    train(*_args())
 
 
 if __name__ == '__main__':

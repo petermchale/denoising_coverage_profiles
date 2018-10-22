@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 
-from utility import down_sample, get_specs
-import train_utility
-import test_utility
+from utility import down_sample, get_args
+import utility_train
+import utility_test
 
 
 def format_fig(fig, height=4):
@@ -89,7 +89,7 @@ def _compute_observed_depth_mean(data):
 def plot_corrected_depths_train_all(trained_models,
                                     marker='o'):
     for trained_model in trained_models:
-        train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
+        train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         _plot_corrected_depths(train_sampled_data, marker, observed_depth_mean,
                                title='sample of training data: ' + trained_model['annotation'], min_y=0, max_y=3)
@@ -98,7 +98,7 @@ def plot_corrected_depths_train_all(trained_models,
 def plot_corrected_depths_dev_all(trained_models,
                                   marker='o', show_title=True):
     for trained_model in trained_models:
-        train_sampled_data, dev_data, _ = train_utility.unpickle(trained_model['path'])
+        train_sampled_data, dev_data, _ = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         title = 'dev data: ' + trained_model['annotation'] if show_title else ''
         figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
@@ -109,9 +109,9 @@ def plot_corrected_depths_dev_all(trained_models,
 def plot_corrected_depths_test_all(trained_models,
                                    marker='o', min_y=0, max_y=2, normalized_depths_only=False, show_title=True):
     for trained_model in trained_models:
-        train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
+        train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
-        test_data = test_utility.unpickle(trained_model['path'])
+        test_data = utility_test.unpickle(trained_model['path'])
         title = 'test data: ' + trained_model['annotation'] if show_title else ''
         figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
         _plot_corrected_depths(test_data, marker, observed_depth_mean,
@@ -123,7 +123,7 @@ def plot_corrected_depths_test_all(trained_models,
 def plot_depths_train_all(trained_models,
                           min_depth=0, max_depth=100):
     for trained_model in trained_models:
-        train_sampled_data, _, _ = train_utility.unpickle(trained_model['path'])
+        train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
         _plot_depths(train_sampled_data,
                      title='sample of training data: ' + trained_model['annotation'],
                      min_depth=min_depth, max_depth=max_depth)
@@ -185,7 +185,7 @@ def _feature_independent_cost(data, observed_depth_mean):
 def plot_costs_all(trained_models,
                    marker='-', start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
     for trained_model in trained_models:
-        train_sampled_data, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
+        train_sampled_data, _, cost_versus_epoch = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         _plot_costs(cost_versus_epoch, marker,
                     _minimum_achievable_cost(train_sampled_data),
@@ -199,8 +199,8 @@ def plot_costs_versus_training_size(trained_models,
     costs_train = []
     costs_dev = []
     for trained_model in trained_models:
-        training_set_sizes.append(get_specs(trained_model['path'])['total number of train examples'])
-        _, _, cost_versus_epoch = train_utility.unpickle(trained_model['path'])
+        training_set_sizes.append(get_args(trained_model['path'])['total number of train examples'])
+        _, _, cost_versus_epoch = utility_train.unpickle(trained_model['path'])
         last_record = cost_versus_epoch.to_dict('records')[-1]
         costs_train.append(last_record['cost_train'])
         costs_dev.append(last_record['cost_dev'])
