@@ -94,12 +94,15 @@ def create_basic_dataframe(args):
                                      ('observed_depth', depths)]))
 
 
-def load_data(args):
+def load_data(args, training_time=True):
     data = create_basic_dataframe(args)
     chromosome = read_fasta(args)
     data['number_of_Ns'] = [chromosome[s:e].count('N') for s, e in zip(data['start'], data['end'])]
     data = args.filter(data, args)
-    data = resample(data, args)
+    if training_time:
+        data = resample(data, args)
+    else:
+        data = data.sample(n=args.sample_size, replace=False).sort_values('start')
     data = _add_sequences(data, chromosome)
     # # normalize depths so that predictions may be used for arbitrary sequencing depths
     # data['observed_depth'] /= float(np.mean(data['observed_depth']))

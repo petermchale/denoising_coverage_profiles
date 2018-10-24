@@ -29,9 +29,10 @@ def _compute_corrected_depths(data, observed_depth_mean):
 
 # avoid the tendency to lump parameters into **kwargs:
 # https://stackoverflow.com/questions/1098549/proper-way-to-use-kwargs-in-python
-def _plot_corrected_depths(data, marker, observed_depth_mean,
-                           chromosome_number=1, title=None, min_y=None, max_y=None, normalized_depths_only=False,
-                           figure_file_name=None):
+def _plot_corrected_depths(data, observed_depth_mean, chromosome_number,
+                           title=None, min_y=None, max_y=None,
+                           normalized_depths=True, corrected_depths=True,
+                           figure_file_name=None, grid=True):
     data = down_sample(data)
 
     _compute_corrected_depths(data, observed_depth_mean)
@@ -42,25 +43,28 @@ def _plot_corrected_depths(data, marker, observed_depth_mean,
     format_fig(figure)
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
-    axis.plot(x, data['normalized_depth'], marker, label='normalized depth')
-    if not normalized_depths_only:
-        axis.plot(x, data['corrected_depth'], marker, label='corrected depth')
+    if normalized_depths:
+        axis.plot(x, data['normalized_depth'], '.k', ms=2, label='normalized depth')
+    if corrected_depths:
+        axis.plot(x, data['corrected_depth'], '.r', ms=2, label='corrected depth')
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
     format_axis(axis)
     if min_y is not None:
-        plt.ylim(ymin=min_y)
+        axis.set_ylim(ymin=min_y)
     if max_y:
-        plt.ylim(ymax=max_y)
+        axis.set_ylim(ymax=max_y)
+    if grid:
+        axis.grid(which='major', axis='y')
     if figure_file_name:
         plt.savefig(figure_file_name, bbox_inches='tight')
     else:
         plt.show()
 
 
-def _plot_depths(data,
-                 chromosome_number=1, title=None, min_depth=None, max_depth=None):
+def _plot_depths(data, chromosome_number,
+                 title=None, min_depth=None, max_depth=None):
     data = down_sample(data)
 
     data = data[data['chromosome_number'].astype('int') == chromosome_number]
@@ -69,8 +73,8 @@ def _plot_depths(data,
     format_fig(figure)
     axis = figure.add_subplot(111)
     x = 0.5 * (data['start'] + data['end'])
-    axis.plot(x, data['observed_depth'], 'o', label='observed depth')
-    axis.plot(x, data['predicted_depth'], 'o', label='predicted depth')
+    axis.plot(x, data['observed_depth'], '.k', ms=2, label='observed depth')
+    axis.plot(x, data['predicted_depth'], '.r', ms=2, label='predicted depth')
     axis.set_xlabel('genomic coordinate on chromosome {}'.format(chromosome_number))
     if title:
         axis.set_title(title)
@@ -87,50 +91,63 @@ def _compute_observed_depth_mean(data):
 
 
 def plot_corrected_depths_train_all(trained_models,
-                                    marker='o'):
+                                    chromosome_number=1, max_y=2):
     for trained_model in trained_models:
         train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
-        _plot_corrected_depths(train_sampled_data, marker, observed_depth_mean,
-                               title='sample of training data: ' + trained_model['annotation'], min_y=0, max_y=3)
+        _plot_corrected_depths(train_sampled_data, observed_depth_mean, chromosome_number,
+                               title='sample of training data: ' + trained_model['annotation'], min_y=0, max_y=max_y)
 
 
 def plot_corrected_depths_dev_all(trained_models,
-                                  marker='o', show_title=True):
+                                  chromosome_number=1, show_title=True):
     for trained_model in trained_models:
         train_sampled_data, dev_data, _ = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         title = 'dev data: ' + trained_model['annotation'] if show_title else ''
         figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
-        _plot_corrected_depths(dev_data, marker, observed_depth_mean,
+        _plot_corrected_depths(dev_data, observed_depth_mean, chromosome_number,
                                title=title, min_y=0, max_y=3, figure_file_name=figure_file_name)
 
 
 def plot_corrected_depths_test_all(trained_models,
-                                   marker='o', min_y=0, max_y=2, normalized_depths_only=False, show_title=True):
+                                   normalized_depths=True, corrected_depths=True,
+                                   chromosome_number=1, min_y=0, max_y=2, normalized_depths_only=False,
+                                   show_title=True, grid=True):
     for trained_model in trained_models:
         train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         test_data = utility_test.unpickle(trained_model['path'])
         title = 'test data: ' + trained_model['annotation'] if show_title else ''
         figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
-        _plot_corrected_depths(test_data, marker, observed_depth_mean,
+        _plot_corrected_depths(test_data, observed_depth_mean, chromosome_number,
                                title=title, min_y=min_y, max_y=max_y,
-                               normalized_depths_only=normalized_depths_only,
-                               figure_file_name=figure_file_name)
+                               normalized_depths=normalized_depths, corrected_depths=corrected_depths,
+                               figure_file_name=figure_file_name,
+                               grid=grid)
 
 
 def plot_depths_train_all(trained_models,
-                          min_depth=0, max_depth=100):
+                          chromosome_number=1, min_depth=0, max_depth=100):
     for trained_model in trained_models:
         train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
-        _plot_depths(train_sampled_data,
+        _plot_depths(train_sampled_data, chromosome_number,
                      title='sample of training data: ' + trained_model['annotation'],
+                     min_depth=min_depth, max_depth=max_depth)
+
+
+def plot_depths_test_all(trained_models,
+                         chromosome_number=1, min_depth=0, max_depth=100):
+    for trained_model in trained_models:
+        test_data = utility_test.unpickle(trained_model['path'])
+        _plot_depths(test_data, chromosome_number,
+                     title='test data: ' + trained_model['annotation'],
                      min_depth=min_depth, max_depth=max_depth)
 
 
 def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
                 start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
+    print('feature_independent_cost', feature_independent_cost)
     if start_epoch:
         log = log[log['epoch'] > start_epoch]
     if end_epoch:
@@ -143,8 +160,8 @@ def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
     plot = axis.loglog if loglog else axis.plot
     plot(log['epoch'], log['cost_train'], marker, label='train cost')
     plot(log['epoch'], log['cost_dev'], marker, label='dev cost')
-    plot(log['epoch'], [minimum_achievable_cost]*len(log['epoch']), '-', label='maximum-likelihood cost')
-    plot(log['epoch'], [feature_independent_cost]*len(log['epoch']), '-k', label='mean-depth cost')
+    plot(log['epoch'], [minimum_achievable_cost] * len(log['epoch']), '-', label='maximum-likelihood cost')
+    plot(log['epoch'], [feature_independent_cost] * len(log['epoch']), '-k', label='mean-depth cost')
 
     if start_epoch:
         plt.xlim(xmin=start_epoch)
@@ -187,6 +204,7 @@ def plot_costs_all(trained_models,
     for trained_model in trained_models:
         train_sampled_data, _, cost_versus_epoch = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
+        print('observed_depth_mean', observed_depth_mean)
         _plot_costs(cost_versus_epoch, marker,
                     _minimum_achievable_cost(train_sampled_data),
                     _feature_independent_cost(train_sampled_data, observed_depth_mean),
