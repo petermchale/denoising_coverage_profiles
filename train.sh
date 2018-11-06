@@ -24,7 +24,6 @@ fi
 
 function train {
    	nohup $1 nice -19 python train.py \
-	   	--train_dev_directory ../data/train_dev_data \
 	   	--trained_model_directory $trained_model_directory \
 		--depth_file_name 100.multicov.bin \
 	   	--chromosome_number 22 \
