@@ -11,15 +11,19 @@ But WGS coverage profiles are noisy, confounding the discovery of CNVs.
 The standard approach to characterize the noise is to do control experiments 
 where the signal is purposefully left out.  But this costs money and time. 
 
+Here, we explore a deep-learning approach to characterize the noise. 
 Deep learning has proven successful at mapping sequence information onto 
-epigenetic information. Here we tackle the potentially more challenging 
-task of deep-learning a mapping from sequence to read depth. 
+epigenetic information. We tackle the potentially more challenging 
+task of deep-learning a mapping from sequence to read depth, 
+with the goal of "denoising" coverage profiles.  
 
-Any methods developed will be highly generalizable to other seq protocols, e.g., RNA-seq. 
+Any methods developed ought to be highly generalizable to other seq protocols, e.g., RNA-seq. 
 
-# Results 
+# Summary of work done so far 
 
-[Signal to noise analysis](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/grant/signalToNoise.ipynb)
+[Basic theory](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/theory.ipynb)
+
+[Signal to noise analysis](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/signalToNoise.ipynb)
 
 [Rejection sampling](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/rejection_sampling.ipynb)
 
