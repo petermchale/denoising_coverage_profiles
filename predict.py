@@ -23,15 +23,15 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
 
     # set up the convolutional layer operation
     outputs = tf.nn.conv2d(inputs, filter=weights, strides=[1, 1, 1, 1], padding='SAME')
-    # The argument [1, 1, 1, 1] is the strides parameter: we want the filter to move in steps of 1 in both the x and
-    # y directions (or height and width directions). This information is conveyed in the strides[1] and strides[2]
-    # values. The first and last values of strides are always equal to 1, if they were not, we would be moving the
-    # filter between training samples or between channels, which we don’t want to do.
+    # We want the filter to move in steps of 1 in both the
+    # height and width directions, which is conveyed in the strides[1] and strides[2]
+    # values, respectively. The first and last values of "strides" are always equal to 1, if they were not,
+    # we would be skipping examples and/or input channels, respectively [see the "data_format" parameter of tf.nn.conv2d]
 
-    # The final parameter is the padding. This padding is to avoid the fact that, when traversing a (x,y) sized image
-    # or input with a convolutional filter of size (n,m), with a stride of 1 the output would be (x-n+1,y-m+1).  So
-    # in this case, without padding, the output size would be "smaller".  We want to keep the sizes of the outputs easy
-    # to track, so we chose the “SAME” option as the padding so we keep the same size.
+    # The final parameter is the padding. This padding is to avoid the fact that, when traversing a (h,w) sized image
+    # or input with a convolutional filter of size (n,m), with a stride of 1 the output would be (h-n+1,w-m+1).  So
+    # in this case, without padding, the output size would be "smaller".  Choose
+    # the “SAME” option for the padding to retain the image size after convolution.
 
     # add the biases
     # https://stackoverflow.com/questions/35094899/tensorflow-operator-overloading
@@ -46,6 +46,13 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
                              ksize=[1, pool_shape[0], pool_shape[1], 1],
                              strides=[1, 1, 2, 1],
                              padding='SAME')
+    # The kernel size ksize would be, e.g., [1, 2, 2, 1]
+    # if you have a 2x2 window over which you take the maximum.
+    # On the batch size dimension and the channels dimension, ksize is 1,
+    # because we neither want to take the maximum over multiple examples, nor over multiple channels.
+    # That is: the same pooling procedure is applied to all channels, independently
+
+    # https://stackoverflow.com/questions/37674306/what-is-the-difference-between-same-and-valid-padding-in-tf-nn-max-pool-of-t
 
     # we return an object, which is actually a sub-graph of its own, containing all the operations and
     # weight variables within it
@@ -67,9 +74,9 @@ def _dense(inputs, number_output_nodes):
     tf.summary.histogram('biases', biases)
 
     # we return an object, which is actually a sub-graph of its own, containing all the operations and
-    # weight variables within it
+    # weight variables within it:
     # https://stackoverflow.com/questions/35094899/tensorflow-operator-overloading
-    outputs = tf.matmul(inputs, weights) + biases
+    outputs = tf.matmul(inputs, weights) + biases # dimensions will be: [number_examples, number_output_nodes]
     tf.summary.histogram('neuron_input', outputs)
 
     return outputs
@@ -78,6 +85,7 @@ def _dense(inputs, number_output_nodes):
 def _flatten(layer):
     _, image_width, image_height, number_filters = layer.shape.as_list()
 
+    # first dimension of return value will be: number_examples
     return tf.reshape(layer, [-1, image_width * image_height * number_filters])
 
 

@@ -1,8 +1,10 @@
 python test.py \
-   --test_directory ../data/test_data \
-   --trained_model_directory $1 \
-   --chromosome_number 22 \
-   --start 22640000 \
-   --end 22660000 \
-   --sample_size 1000 \
-   --max_y 3
+   	--test_directory $1 \
+	--depth_file_name ../data/depths/1.multicov.int32.bin \
+   	--trained_model_directory ../data/trained_models/09_100samples_day2/09_100samples_originalDistribution \
+   	--chromosome_number 22 \
+   	--content_start $2 \
+   	--content_end $3 \
+	--filter filter1 \
+	--number_test_examples 1000 \
+	--padding 0.5

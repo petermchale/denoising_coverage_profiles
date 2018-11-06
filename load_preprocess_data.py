@@ -44,7 +44,7 @@ def compute_acceptance_probability(data, args):
 
 
 def resample(data, args):
-    if args.resampling_target_file_name:
+    if args.resampling_target:
         random_numbers = np.random.uniform(low=0.0, high=1.0, size=len(data))
         acceptance_probability = compute_acceptance_probability(data, args)
         data = data[random_numbers < acceptance_probability[data['observed_depth']]]
@@ -64,10 +64,21 @@ def filter1(data, args):
                 (data['observed_depth'] > 0)]
 
 
-def _read_depths(args):
+def compute_observed_depth_mean(depths, chromosome_number):
+    assert(str(chromosome_number) == '22')
+    return np.mean(depths[int(25e6):int(50e6)])
+
+
+def read_depths(args):
     assert(str(args.chromosome_number) == '22')
-    assert('.'.join(os.path.basename(args.depth_file_name).split('.')[1:]) == 'multicov.bin')
-    depths = np.fromfile(args.depth_file_name, dtype=np.int32)
+    tool, dtype, suffix = os.path.basename(args.depth_file_name).split('.')[-3:]
+    assert(tool == 'multicov')
+    assert(suffix == 'bin')
+    return np.fromfile(args.depth_file_name, dtype=getattr(np, dtype))
+
+
+def _read_positions_depths(args):
+    depths = read_depths(args)
     positions = np.arange(len(depths))
     return positions, depths
 
@@ -84,12 +95,13 @@ def _add_sequences(data, chromosome):
 
 
 def create_basic_dataframe(args):
-    centers, depths = _read_depths(args)
+    centers, depths = _read_positions_depths(args)
     starts = centers - args.window_half_width
     ends = centers + args.window_half_width + 1
     from collections import OrderedDict
     return pd.DataFrame(OrderedDict([('chromosome_number', args.chromosome_number),
                                      ('start', starts),
+                                     ('center', centers),
                                      ('end', ends),
                                      ('observed_depth', depths)]))
 
@@ -102,7 +114,10 @@ def load_data(args, training_time=True):
     if training_time:
         data = resample(data, args)
     else:
-        data = data.sample(n=args.sample_size, replace=False).sort_values('start')
+        try:
+            data = data.sample(n=args.number_test_examples, replace=False).sort_values('start')
+        except ValueError:
+            data.to_pickle(os.path.join(args.trained_model_directory, args.test_directory, 'temp.pkl'))
     data = _add_sequences(data, chromosome)
     # # normalize depths so that predictions may be used for arbitrary sequencing depths
     # data['observed_depth'] /= float(np.mean(data['observed_depth']))

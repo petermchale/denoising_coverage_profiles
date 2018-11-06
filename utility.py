@@ -42,11 +42,22 @@ def down_sample(data, number_samples=1000):
 import json
 
 
-def get_args(trained_model_path):
-    with open(os.path.join(trained_model_path, 'args.json'), 'r') as fp:
+def get_train_args(trained_model_path):
+    with open(os.path.join(trained_model_path, 'train.json'), 'r') as fp:
         return json.load(fp)
 
 
 def named_tuple(dictionary):
     from collections import namedtuple
     return namedtuple('Struct', dictionary.keys())(*dictionary.values())
+
+import numpy as np
+
+# https://bugs.python.org/issue24313
+# https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
+def make_serializable(o):
+    if isinstance(o, np.integer):
+        return int(o)
+    raise TypeError
+
+

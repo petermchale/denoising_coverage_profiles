@@ -168,14 +168,6 @@ def _save_graph_variables(session, trained_model_dir):
         json.dump(checkpoint, fp, indent=4)
 
 
-# https://bugs.python.org/issue24313
-# https://stackoverflow.com/questions/27050108/convert-numpy-type-to-python/27050186#27050186
-def _make_serializable(o):
-    if isinstance(o, np.integer):
-        return int(o)
-    raise TypeError
-
-
 def train(args, args_to_save, number_epochs=1000, checkpoint_number_batches=5, max_number_batches_to_average=1):
     # !!! use tf.data API when input data is distributed across multiple machines !!!
     # !!! https://www.youtube.com/watch?v=uIcqeP7MFH0 !!!
@@ -204,8 +196,9 @@ def train(args, args_to_save, number_epochs=1000, checkpoint_number_batches=5, m
                 'number of trainable parameters': _number_trainable_parameters(),
                 'max number of recent batches to average over': max_number_batches_to_average,
             })
-            with open(os.path.join(args.trained_model_directory, 'args.json'), 'w') as fp:
-                json.dump(args_to_save, fp, indent=4, default=_make_serializable)
+            from utility import make_serializable
+            with open(os.path.join(args.trained_model_directory, 'train.json'), 'w') as fp:
+                json.dump(args_to_save, fp, indent=4, default=make_serializable)
 
             data_train_sampled, images_train_sampled, observed_depths_train_sampled = _downsample_preprocess(data_train)
             feed_dict_train_sampled = {graph.X: images_train_sampled, graph.y: observed_depths_train_sampled}
@@ -291,7 +284,6 @@ def train(args, args_to_save, number_epochs=1000, checkpoint_number_batches=5, m
 def _args():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--train_dev_directory')
     parser.add_argument('--trained_model_directory')
     parser.add_argument('--depth_file_name')
     parser.add_argument('--chromosome_number', type=int)
@@ -305,18 +297,18 @@ def _args():
     parser.add_argument('--learning_rate', type=float)
     args = parser.parse_args()
 
-    args_to_save = args.__dict__.copy()
+    args.fasta_file = '../data/sequences/human_g1k_v37.fasta'
 
-    args.depth_file_name = os.path.join(args.train_dev_directory, args.depth_file_name)
-    args.fasta_file = os.path.join(args.train_dev_directory, 'human_g1k_v37.fasta')
+    args_to_save = args.__dict__.copy()
 
     # this allows us to pass "None" to bash script to indicate that there is no json file describing a resampling scheme
     if args.resampling_target_file_name == "None":
-        args.resampling_target_file_name = None
-
-    if args.resampling_target_file_name:
+        args_to_save['resampling_target'] = "None"
+        args.resampling_target = None
+    else:
         with open(args.resampling_target_file_name, 'r') as fp:
-            args.resampling_target = json.load(fp)
+            args_to_save['resampling_target'] = json.load(fp)
+            args.resampling_target = args_to_save['resampling_target'].copy()
             args.resampling_target['function'] = getattr(load_preprocess_data, args.resampling_target['function'])
             args.resampling_target = named_tuple(args.resampling_target)
 

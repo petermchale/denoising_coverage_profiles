@@ -10,7 +10,6 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from load_preprocess_data import load_data, preprocess
-from utility_test import pickle
 
 
 def _restore_graph(checkpoint):
@@ -51,6 +50,21 @@ def _load_preprocess_data(args):
     return (data,) + preprocess(data)
 
 
+def _compute_observed_depth_mean(chromosome_number, depth_file_name):
+    from utility import named_tuple
+    from load_preprocess_data import read_depths
+    depths = read_depths(named_tuple({'chromosome_number': chromosome_number,
+                                      'depth_file_name': depth_file_name}))
+    from load_preprocess_data import compute_observed_depth_mean
+    return compute_observed_depth_mean(depths, chromosome_number)
+
+
+def _depth_conversion_factor(chromosome_number, depth_file_name_train, depth_file_name_test):
+    mean_depth_train = _compute_observed_depth_mean(chromosome_number, depth_file_name_train)
+    mean_depth_test = _compute_observed_depth_mean(chromosome_number, depth_file_name_test)
+    return mean_depth_test/mean_depth_train
+
+
 def test(args):
     data_test, images_test, observed_depths_test = _load_preprocess_data(args)
     print('data has been read in')
@@ -59,63 +73,78 @@ def test(args):
         graph = _restore_graph_variables(session, args.trained_model_directory)
         print('graph has been restored')
         # https://cv-tricks.com/tensorflow-tutorial/save-restore-tensorflow-models-quick-complete-tutorial/
-        data_test['predicted_depth'] = session.run(graph.get_tensor_by_name('output_layer/predictions:0'),
-                                                   {graph.get_tensor_by_name('input_layer/X:0'): images_test,
-                                                    graph.get_tensor_by_name('cost/y:0'): observed_depths_test})
+
+        data_test['predicted_depth'] = session.run(
+            graph.get_tensor_by_name('output_layer/predictions:0'),
+            feed_dict={graph.get_tensor_by_name('input_layer/X:0'): images_test})
+        from utility import get_train_args
+        depth_file_name_train = os.path.join('../data/depths',
+                                             get_train_args(args.trained_model_directory)['depth_file_name'])
+        data_test['predicted_depth'] *= _depth_conversion_factor(args.chromosome_number,
+                                                                 depth_file_name_train=depth_file_name_train,
+                                                                 depth_file_name_test=args.depth_file_name)
         print('predictions have been made')
-        pickle(data_test, args.trained_model_directory)
+        # pickle_file_name = '.'.join(['test'] + os.path.basename(args.depth_file_name).split('.')[:-1] + ['pkl'])
+        data_test.to_pickle(os.path.join(args.trained_model_directory, args.test_directory, 'test.pkl'))
         print('predictions have been stored')
+
+
+def _make_test_directory(test_directory):
+    if not os.path.exists(test_directory):
+        os.makedirs(test_directory)
+
+
+def _compute_start_end(args):
+    shift = args.padding*(args.content_end - args.content_start)
+    args.start = int(args.content_start - shift)
+    args.end = int(args.content_end + shift)
+
+
+def _dump_json(args):
+    _make_test_directory(os.path.join(args.trained_model_directory, args.test_directory))
+    import json
+    from utility import make_serializable
+    with open(os.path.join(args.trained_model_directory, args.test_directory, 'test.json'), 'w') as fp:
+        json.dump(args.__dict__.copy(), fp, indent=4, default=make_serializable)
 
 
 def _args():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--test_directory')
+    parser.add_argument('--depth_file_name')
     parser.add_argument('--trained_model_directory')
+    parser.add_argument('--test_directory')
+    parser.add_argument('--filter')
     parser.add_argument('--chromosome_number', type=int)
-    parser.add_argument('--start', type=int)
-    parser.add_argument('--end', type=int)
-    parser.add_argument('--sample_size', type=int)
-    parser.add_argument('--max_y', type=float)
-    parser.add_argument('--normalized_depths_only', action="store_true", default=False)
+    parser.add_argument('--content_start', type=int)
+    parser.add_argument('--content_end', type=int)
+    parser.add_argument('--number_test_examples', type=int)
+    parser.add_argument('--padding', type=float)
+
     args = parser.parse_args()
 
     # high-quality deletion on chromosome 1
     # region_start = (189704000 - 100000)
     # region_end = (189783300 + 100000)
 
-    from utility import get_args
+    _compute_start_end(args)
 
-    args.depth_file_name = get_args(args.trained_model_directory)['depth_file_name']
-    args.depth_file_name = os.path.join(args.test_directory, args.depth_file_name)
+    from utility import get_train_args
+    args.window_half_width = get_train_args(args.trained_model_directory)['window_half_width']
 
-    args.window_half_width = get_args(args.trained_model_directory)['window_half_width']
+    args.fasta_file = '../data/sequences/human_g1k_v37.fasta'
 
-    args.fasta_file = os.path.join(args.test_directory, 'human_g1k_v37.fasta')
+    _dump_json(args)
 
     import load_preprocess_data
-    args.filter = get_args(args.trained_model_directory)['filter']
     args.filter = getattr(load_preprocess_data, args.filter)
 
     from utility import named_tuple
     return named_tuple(args.__dict__)
 
 
-def _trained_models(args):
-    return [{'path': args.trained_model_directory,
-             'annotation': '{}:{}-{}'.format(args.chromosome_number,
-                                             args.start,
-                                             args.end)}]
-
-
 def main():
     test(_args())
-
-    print('creating plot...')
-    from plot import plot_corrected_depths_test_all
-    plot_corrected_depths_test_all(_trained_models(_args()), chromosome_number=_args().chromosome_number,
-                                   max_y=_args().max_y,
-                                   normalized_depths_only=_args().normalized_depths_only)
 
 
 if __name__ == '__main__':

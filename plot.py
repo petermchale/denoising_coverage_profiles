@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 
-from utility import down_sample, get_args
+from utility import down_sample, get_train_args
 import utility_train
-import utility_test
 
 
 def format_fig(fig, height=4):
@@ -64,7 +63,7 @@ def _plot_corrected_depths(data, observed_depth_mean, chromosome_number,
 
 
 def _plot_depths(data, chromosome_number,
-                 title=None, min_depth=None, max_depth=None):
+                 title=None, min_depth=None, max_depth=None, logy_scale=False):
     data = down_sample(data)
 
     data = data[data['chromosome_number'].astype('int') == chromosome_number]
@@ -83,6 +82,9 @@ def _plot_depths(data, chromosome_number,
         plt.ylim(ymin=min_depth)
     if max_depth:
         plt.ylim(ymax=max_depth)
+    if logy_scale:
+        plt.yscale('log')
+        plt.ylim([1, max_depth])
     plt.show()
 
 
@@ -110,14 +112,26 @@ def plot_corrected_depths_dev_all(trained_models,
                                title=title, min_y=0, max_y=3, figure_file_name=figure_file_name)
 
 
+import os
+import pandas as pd
+
+
 def plot_corrected_depths_test_all(trained_models,
                                    normalized_depths=True, corrected_depths=True,
-                                   chromosome_number=1, min_y=0, max_y=2, normalized_depths_only=False,
+                                   chromosome_number=1, min_y=0, max_y=2,
                                    show_title=True, grid=True):
     for trained_model in trained_models:
-        train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
-        observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
-        test_data = utility_test.unpickle(trained_model['path'])
+        if 'depth_file_name' in trained_model:
+            from utility import named_tuple
+            from load_preprocess_data import read_depths
+            depths = read_depths(named_tuple({'chromosome_number': chromosome_number,
+                                              'depth_file_name': trained_model['depth_file_name']}))
+            from load_preprocess_data import compute_observed_depth_mean
+            observed_depth_mean = compute_observed_depth_mean(depths, chromosome_number)
+        else:
+            train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
+            observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
+        test_data = pd.read_pickle(os.path.join(trained_model['path'], trained_model['test_file_name']))
         title = 'test data: ' + trained_model['annotation'] if show_title else ''
         figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
         _plot_corrected_depths(test_data, observed_depth_mean, chromosome_number,
@@ -137,12 +151,18 @@ def plot_depths_train_all(trained_models,
 
 
 def plot_depths_test_all(trained_models,
-                         chromosome_number=1, min_depth=0, max_depth=100):
+                         chromosome_number=1, min_depth=0, max_depth=None, logy_scale=False):
     for trained_model in trained_models:
-        test_data = utility_test.unpickle(trained_model['path'])
-        _plot_depths(test_data, chromosome_number,
-                     title='test data: ' + trained_model['annotation'],
-                     min_depth=min_depth, max_depth=max_depth)
+        test_data = pd.read_pickle(os.path.join(trained_model['path'], trained_model['test_file_name']))
+        if max_depth:
+            _plot_depths(test_data, chromosome_number,
+                         title=trained_model['annotation'],
+                         min_depth=min_depth, max_depth=max_depth, logy_scale=logy_scale)
+        else:
+            _plot_depths(test_data, chromosome_number,
+                         title=trained_model['annotation'],
+                         min_depth=min_depth, max_depth=trained_model['max_depth'], logy_scale=logy_scale)
+
 
 
 def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
@@ -217,7 +237,7 @@ def plot_costs_versus_training_size(trained_models,
     costs_train = []
     costs_dev = []
     for trained_model in trained_models:
-        training_set_sizes.append(get_args(trained_model['path'])['total number of train examples'])
+        training_set_sizes.append(get_train_args(trained_model['path'])['total number of train examples'])
         _, _, cost_versus_epoch = utility_train.unpickle(trained_model['path'])
         last_record = cost_versus_epoch.to_dict('records')[-1]
         costs_train.append(last_record['cost_train'])
