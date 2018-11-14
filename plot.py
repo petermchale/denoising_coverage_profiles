@@ -132,7 +132,7 @@ def plot_corrected_depths_test_all(trained_models,
             train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
             observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
         test_data = pd.read_pickle(os.path.join(trained_model['path'], trained_model['test_file_name']))
-        title = 'test data: ' + trained_model['annotation'] if show_title else ''
+        title = trained_model['annotation'] if show_title else ''
         figure_file_name = trained_model['figure_file_name'] if 'figure_file_name' in trained_model else None
         _plot_corrected_depths(test_data, observed_depth_mean, chromosome_number,
                                title=title, min_y=min_y, max_y=max_y,
@@ -142,12 +142,31 @@ def plot_corrected_depths_test_all(trained_models,
 
 
 def plot_depths_train_all(trained_models,
-                          chromosome_number=1, min_depth=0, max_depth=100):
+                          chromosome_number=1, min_depth=0, max_depth=None, logy_scale=False):
     for trained_model in trained_models:
         train_sampled_data, _, _ = utility_train.unpickle(trained_model['path'])
-        _plot_depths(train_sampled_data, chromosome_number,
-                     title='sample of training data: ' + trained_model['annotation'],
-                     min_depth=min_depth, max_depth=max_depth)
+        if max_depth:
+            _plot_depths(train_sampled_data, chromosome_number,
+                         title=trained_model['annotation'],
+                         min_depth=min_depth, max_depth=max_depth, logy_scale=logy_scale)
+        else:
+            _plot_depths(train_sampled_data, chromosome_number,
+                         title=trained_model['annotation'],
+                         min_depth=min_depth, max_depth=trained_model['max_depth'], logy_scale=logy_scale)
+
+
+def plot_depths_dev_all(trained_models,
+                        chromosome_number=1, min_depth=0, max_depth=None, logy_scale=False):
+    for trained_model in trained_models:
+        _, dev_sampled_data, _ = utility_train.unpickle(trained_model['path'])
+        if max_depth:
+            _plot_depths(dev_sampled_data, chromosome_number,
+                         title=trained_model['annotation'],
+                         min_depth=min_depth, max_depth=max_depth, logy_scale=logy_scale)
+        else:
+            _plot_depths(dev_sampled_data, chromosome_number,
+                         title=trained_model['annotation'],
+                         min_depth=min_depth, max_depth=trained_model['max_depth'], logy_scale=logy_scale)
 
 
 def plot_depths_test_all(trained_models,
@@ -164,9 +183,9 @@ def plot_depths_test_all(trained_models,
                          min_depth=min_depth, max_depth=trained_model['max_depth'], logy_scale=logy_scale)
 
 
-
 def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
-                start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None, loglog=True):
+                start_epoch=None, end_epoch=None, min_cost=None, max_cost=None, title=None,
+                loglog=False, logx=False, logy=False):
     print('feature_independent_cost', feature_independent_cost)
     if start_epoch:
         log = log[log['epoch'] > start_epoch]
@@ -194,6 +213,13 @@ def _plot_costs(log, marker, minimum_achievable_cost, feature_independent_cost,
         plt.ylim(ymin=min_cost)
 
     axis.set_xlabel('epoch')
+
+    if logx:
+        plt.xscale('log')
+
+    if logy:
+        plt.yscale('log')
+
     if title:
         axis.set_title(title)
     format_axis(axis)
@@ -220,7 +246,8 @@ def _feature_independent_cost(data, observed_depth_mean):
 
 
 def plot_costs_all(trained_models,
-                   marker='-', start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200, loglog=True):
+                   marker='-', start_epoch=0.01, end_epoch=1000, min_cost=2, max_cost=200,
+                   loglog=False, logx=False, logy=False):
     for trained_model in trained_models:
         train_sampled_data, _, cost_versus_epoch = utility_train.unpickle(trained_model['path'])
         observed_depth_mean = _compute_observed_depth_mean(train_sampled_data)
@@ -228,7 +255,8 @@ def plot_costs_all(trained_models,
         _plot_costs(cost_versus_epoch, marker,
                     _minimum_achievable_cost(train_sampled_data),
                     _feature_independent_cost(train_sampled_data, observed_depth_mean),
-                    start_epoch, end_epoch, min_cost, max_cost, title=trained_model['annotation'], loglog=loglog)
+                    start_epoch, end_epoch, min_cost, max_cost, title=trained_model['annotation'],
+                    loglog=loglog, logx=logx, logy=logy)
 
 
 def plot_costs_versus_training_size(trained_models,

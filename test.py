@@ -62,10 +62,11 @@ def _compute_observed_depth_mean(chromosome_number, depth_file_name):
 def _depth_conversion_factor(chromosome_number, depth_file_name_train, depth_file_name_test):
     mean_depth_train = _compute_observed_depth_mean(chromosome_number, depth_file_name_train)
     mean_depth_test = _compute_observed_depth_mean(chromosome_number, depth_file_name_test)
-    return mean_depth_test/mean_depth_train
+    return mean_depth_test / mean_depth_train
 
 
 def test(args):
+
     data_test, images_test, observed_depths_test = _load_preprocess_data(args)
     print('data has been read in')
 
@@ -95,7 +96,7 @@ def _make_test_directory(test_directory):
 
 
 def _compute_start_end(args):
-    shift = args.padding*(args.content_end - args.content_start)
+    shift = args.padding * (args.content_end - args.content_start)
     args.start = int(args.content_start - shift)
     args.end = int(args.content_end + shift)
 
