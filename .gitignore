@@ -9,4 +9,5 @@ __pycache__
 .DS_Store
 .idea
 .ipynb_checkpoints
+*.ai
 *.pdf
