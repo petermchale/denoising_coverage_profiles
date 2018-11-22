@@ -10,4 +10,7 @@ __pycache__
 .idea
 .ipynb_checkpoints
 *.ai
+*.txt
+*.hdf5
+logs
 *.pdf

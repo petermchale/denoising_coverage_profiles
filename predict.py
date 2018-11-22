@@ -22,6 +22,8 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
     tf.summary.histogram('biases', biases)
 
     # set up the convolutional layer operation
+    # https://github.com/gifford-lab/Keras-genomics/blob/master/example/model.py
+    # https://github.com/gifford-lab/Keras-genomics/issues/1#issuecomment-270767629
     outputs = tf.nn.conv2d(inputs, filter=weights, strides=[1, 1, 1, 1], padding='SAME')
     # We want the filter to move in steps of 1 in both the
     # height and width directions, which is conveyed in the strides[1] and strides[2]
@@ -48,7 +50,7 @@ def _convolution_activation_pooling(inputs, num_filters, filter_shape, pool_shap
                              padding='SAME')
     # The kernel size ksize would be, e.g., [1, 2, 2, 1]
     # if you have a 2x2 window over which you take the maximum.
-    # On the batch size dimension and the channels dimension, ksize is 1,
+    # On the batch dimension and the channel dimension, ksize is 1,
     # because we neither want to take the maximum over multiple examples, nor over multiple channels.
     # That is: the same pooling procedure is applied to all channels, independently
 
@@ -83,10 +85,10 @@ def _dense(inputs, number_output_nodes):
 
 
 def _flatten(layer):
-    _, image_width, image_height, number_filters = layer.shape.as_list()
+    _, image_height, image_width, number_filters = layer.shape.as_list()
 
     # first dimension of return value will be: number_examples
-    return tf.reshape(layer, [-1, image_width * image_height * number_filters])
+    return tf.reshape(layer, [-1, image_height * image_width * number_filters])
 
 
 def predict(X):
@@ -94,6 +96,9 @@ def predict(X):
     with tf.variable_scope('conv1_layer'):
         conv1 = _convolution_activation_pooling(X, num_filters=25, filter_shape=[4, 8], pool_shape=[1, 2])
 
+    # A potential problem: with padding=same and filter height=4,
+    # the second conv layer will pad the output from the 1st layer, increasing its height dimension from 1 to 4,
+    # which means that 3/4 of the filter values get multiplied by zero all the time, which is wasteful.
     with tf.variable_scope('conv2_layer'):
         conv2 = _convolution_activation_pooling(conv1, num_filters=50, filter_shape=[4, 8], pool_shape=[1, 2])
 
