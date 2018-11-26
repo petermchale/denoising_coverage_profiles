@@ -41,7 +41,7 @@ class Graph(object):
         tf.reset_default_graph()
         tf.set_random_seed(1)
 
-        # dimensions of X are [number_examples, image_width, image_height, number_channels]:
+        # dimensions of X are [number_examples, image_height, image_width, number_channels]:
         with tf.variable_scope('input_layer'):
             self.X = tf.placeholder(tf.float32, shape=[None, image_height, image_width, 1], name='X')
         self.predictions = predict(self.X)

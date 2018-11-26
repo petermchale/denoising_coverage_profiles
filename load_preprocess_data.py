@@ -124,7 +124,17 @@ def load_data(args, training_time=True):
     return data
 
 
-def _one_hot_encode(sequence):
+def _one_hot_encode_conv1d(sequence):
+    encoded_sequence = np.zeros((len(sequence), 4))
+    alphabet = 'ACGT'
+    for i, base in enumerate(sequence):
+        if base not in alphabet:
+            continue
+        encoded_sequence[i, alphabet.index(base)] = 1
+    return encoded_sequence
+
+
+def _one_hot_encode_conv2d(sequence):
     image = np.zeros((4, len(sequence)))
     alphabet = 'ACGT'
     for i, base in enumerate(sequence):
@@ -134,13 +144,33 @@ def _one_hot_encode(sequence):
     return image
 
 
-def preprocess(data):
+def _preprocess_conv1d(data):
+    encoded_sequences = []
+    for sequence in data['sequence']:
+        encoded_sequences.append(_one_hot_encode_conv1d(sequence))
+    encoded_sequences = np.array(encoded_sequences)
+
+    depths = np.array(data['observed_depth'])
+
+    return encoded_sequences, depths
+
+
+def _preprocess_conv2d(data):
     images = []
     for sequence in data['sequence']:
-        images.append(_one_hot_encode(sequence))
+        images.append(_one_hot_encode_conv2d(sequence))
     images = np.expand_dims(np.array(images), axis=3)
 
     depths = np.array(data['observed_depth'])
     depths = depths.reshape((len(depths), 1))
 
     return images, depths
+
+
+def preprocess(data, conv="2d"):
+    if conv == "1d":
+        return _preprocess_conv1d(data)
+    elif conv == "2d":
+        return _preprocess_conv2d(data)
+    else:
+        raise ValueError("conv must be '1d' or '2d'")

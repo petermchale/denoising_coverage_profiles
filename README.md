@@ -27,6 +27,8 @@ Any methods developed ought to be highly generalizable to other seq protocols, e
 
 [Rejection sampling](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/rejection_sampling.ipynb)
 
-[1D convolution tutorial in Keras](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/conv1d_tutorial.ipynb)
+## 1D convolution toy models in Keras
+
+[basic](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/conv1d_basic.ipynb)
 
 

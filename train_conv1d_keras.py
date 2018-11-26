@@ -14,26 +14,17 @@ def model(image_height, image_width):
 
     model = Sequential()
 
-    # Each convolutional filter has depth, i.e. it is really a volume (just as for tf.nn.conv2d):
-    # see line 135 of /anaconda2/envs/tensorflow3/lib/python3.5/site-packages/keras/layers/convolutional.py
-
-    # padding doesn't matter
     model.add(Conv2D(filters=32, kernel_size=(4, 8), activation='relu', input_shape=(image_height, image_width, 1)))
 
-
     MaxPooling1D(pool_size=2).get_weights()
+
+    import keras
+    keras.losses.binary_crossentropy
 
     model.add(MaxPooling2D(pool_size=(2, 2)))
 
 
     model.add(Conv2D(32, (3, 3), activation='relu'))
-    # INVERTED DROPOUT
-    # gets applied to the output of preceding layer (at training time only)
-    # https://keras.io/layers/core/#dropout
-    # weights are scaled by inverse of dropout rate (at training time only):
-    # see: line 2277 of /anaconda2/envs/tensorflow3/lib/python3.5/site-packages/tensorflow/python/ops/nn_ops.py
-    # also see: https://github.com/keras-team/keras/issues/3305#issuecomment-235359883
-    # also see: https://www.coursera.org/lecture/deep-neural-network/dropout-regularization-eM33A
     model.add(Dropout(0.25))
 
     model.add(Conv2D(64, (3, 3), activation='relu'))
