@@ -31,4 +31,6 @@ Any methods developed ought to be highly generalizable to other seq protocols, e
 
 [basic](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/conv1d_basic.ipynb)
 
+[genomics classification task](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_classification.ipynb)
+
 
