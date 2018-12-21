@@ -33,4 +33,5 @@ Any methods developed ought to be highly generalizable to other seq protocols, e
 
 [genomics classification task](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_classification.ipynb)
 
+[genomics regression task](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_regression_1motif.ipynb)
 
