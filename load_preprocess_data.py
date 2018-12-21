@@ -8,6 +8,8 @@ import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import pandas as pd
 
+alphabet = 'ACGT'
+
 
 def uniform_distribution(x, args):
     answer = np.zeros_like(x, dtype=float)
@@ -65,15 +67,15 @@ def filter1(data, args):
 
 
 def compute_observed_depth_mean(depths, chromosome_number):
-    assert(str(chromosome_number) == '22')
+    assert (str(chromosome_number) == '22')
     return np.mean(depths[int(25e6):int(50e6)])
 
 
 def read_depths(args):
-    assert(str(args.chromosome_number) == '22')
+    assert (str(args.chromosome_number) == '22')
     tool, dtype, suffix = os.path.basename(args.depth_file_name).split('.')[-3:]
-    assert(tool == 'multicov')
-    assert(suffix == 'bin')
+    assert (tool == 'multicov')
+    assert (suffix == 'bin')
     return np.fromfile(args.depth_file_name, dtype=getattr(np, dtype))
 
 
@@ -126,7 +128,6 @@ def load_data(args, training_time=True):
 
 def _one_hot_encode_conv1d(sequence):
     encoded_sequence = np.zeros((len(sequence), 4))
-    alphabet = 'ACGT'
     for i, base in enumerate(sequence):
         if base not in alphabet:
             continue
@@ -134,9 +135,40 @@ def _one_hot_encode_conv1d(sequence):
     return encoded_sequence
 
 
+def _one_hot_decode_conv1d(encoded_sequence):
+    sequence = ''
+    for encoded_base in encoded_sequence:
+        max_element = int(np.max(encoded_base))
+        if max_element == 1:
+            sequence += alphabet[np.argmax(encoded_base)]
+        elif max_element == 0:
+            print('Warning: assuming an encoded base comprising only zeros corresponds to N')
+            sequence += 'N'
+        else:
+            raise ValueError('maximum value in the encoded base {} is neither 0 nor 1'.format(encoded_base))
+    return sequence
+
+
+def test_one_hot_decode_conv1d():
+    encoded_sequence = np.array([[0., 0., 1., 0.],
+                                 [0., 1., 0., 0.],
+                                 [0., 0., 1., 0.],
+                                 [1., 0., 0., 0.],
+                                 [1., 0., 0., 0.],
+                                 [1., 0., 0., 0.],
+                                 [0., 0., 0., 1.],
+                                 [0., 0., 0., 0.],
+                                 [0., 0., 0., 1.]])
+    sequence = 'GCGAAATNT'
+    if _one_hot_decode_conv1d(encoded_sequence) == sequence:
+        test_result = 'passed'
+    else:
+        test_result = 'failed'
+    print('testing {} ............... {}'.format(_one_hot_decode_conv1d.__name__, test_result))
+
+
 def _one_hot_encode_conv2d(sequence):
     image = np.zeros((4, len(sequence)))
-    alphabet = 'ACGT'
     for i, base in enumerate(sequence):
         if base not in alphabet:
             continue
@@ -151,6 +183,7 @@ def _preprocess_conv1d(data):
     encoded_sequences = np.array(encoded_sequences)
 
     depths = np.array(data['observed_depth'])
+    depths = depths.reshape((len(depths), 1))
 
     return encoded_sequences, depths
 
@@ -174,3 +207,7 @@ def preprocess(data, conv="2d"):
         return _preprocess_conv2d(data)
     else:
         raise ValueError("conv must be '1d' or '2d'")
+
+
+if __name__ == '__main__':
+    test_one_hot_decode_conv1d()

@@ -17,6 +17,8 @@ def model(image_height, image_width):
     import keras
     keras.optimizers.Adam
 
+    keras.callbacks.Callback
+
     keras.activations.sigmoid(x)
 
     model.add(Conv2D(filters=32, kernel_size=(4, 8), activation='relu', input_shape=(image_height, image_width, 1)))
@@ -24,8 +26,10 @@ def model(image_height, image_width):
     MaxPooling1D(pool_size=2).get_weights()
 
     import keras
+    keras.losses.poisson
     keras.losses.binary_crossentropy
     keras.metrics.binary_accuracy
+    keras.activations.exponential
 
     model.add(MaxPooling2D(pool_size=(2, 2)))
 
