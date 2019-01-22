@@ -8,9 +8,6 @@ CNVs can be better discovered using depth coverage profiles from WGS than:
 
 But WGS coverage profiles are noisy, confounding the discovery of CNVs. 
 
-The standard approach to characterize the noise is to do control experiments 
-where the signal is purposefully left out.  But this costs money and time. 
-
 Here, we explore a deep-learning approach to characterize the noise. 
 Deep learning has proven successful at mapping sequence information onto 
 epigenetic information. We tackle the potentially more challenging 
@@ -19,7 +16,7 @@ with the goal of "denoising" coverage profiles.
 
 Any methods developed ought to be highly generalizable to other seq protocols, e.g., RNA-seq. 
 
-# Summary of work done so far 
+# Summary of work done so far (this project is very much a work in progress)
 
 [Basic theory](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/theory.ipynb)
 
