@@ -16,7 +16,9 @@ with the goal of "denoising" coverage profiles.
 
 Any methods developed ought to be highly generalizable to other seq protocols, e.g., RNA-seq. 
 
-# Summary of work done so far (this project is very much a work in progress)
+# Summary of work done so far 
+
+## Basic approach
 
 [Basic Poisson model](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/poisson_model_of_read_depths.ipynb)
 
