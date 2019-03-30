@@ -180,9 +180,9 @@ def _preprocess_conv1d(data):
     encoded_sequences = []
     for sequence in data['sequence']:
         encoded_sequences.append(_one_hot_encode_conv1d(sequence))
-    encoded_sequences = np.array(encoded_sequences)
+    encoded_sequences = np.array(encoded_sequences, dtype=np.float32)
 
-    depths = np.array(data['observed_depth'])
+    depths = np.array(data['observed_depth'], dtype=np.float32)
     depths = depths.reshape((len(depths), 1))
 
     return encoded_sequences, depths

@@ -28,16 +28,11 @@ Any methods developed ought to be highly generalizable to other seq protocols, e
 
 ## 1D convolution models in Keras
 
-[How conv1d works in Keras](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/conv1d_basic.ipynb)
-
 [Genomics classification task](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_classification.ipynb)
 
 [Genomics regression task](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_regression.ipynb)
 
 ## Mixture models
 
-[Mixture of Gaussians](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/gaussian_mixture_distribution_basic.ipynb)
-
-[Mixture of Poissons: toy model](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/poisson_mixture_distribution_basic.ipynb)
 
 
