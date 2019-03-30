@@ -34,5 +34,5 @@ Any methods developed ought to be highly generalizable to other seq protocols, e
 
 ## Mixture models
 
-[Fitting a mixture model to synthetic data (part1)](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part1.ipynb)
+Fitting a mixture model to synthetic data [(part1)](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part1.ipynb) [(part2)](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/    discovering_DNA_motifs_using_convnets_mixtureDistribution_part2.ipynb)
 
