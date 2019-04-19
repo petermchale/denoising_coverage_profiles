@@ -37,3 +37,7 @@ Any methods developed ought to be highly generalizable to other seq protocols, e
 Fitting a mixture model to synthetic data [(part1)](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part1.ipynb) [(part2)](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part2.ipynb)
 
 [Using a mixture model to denoise depth of coverage at AT repeat sequences](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part3.ipynb)
+
+## Motif enrichment
+
+[Are certain DNA sequence motifs enriched in false SV calls?](http://nbviewer.jupyter.org/github/petermchale/denois    ing_coverage_profiles/blob/master/motif_enrichment_in_false_SVs.ipynb)
