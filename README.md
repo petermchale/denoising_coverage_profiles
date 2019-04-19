@@ -40,4 +40,4 @@ Fitting a mixture model to synthetic data [(part1)](http://nbviewer.jupyter.org/
 
 ## Motif enrichment
 
-[Are certain DNA sequence motifs enriched in false SV calls?](http://nbviewer.jupyter.org/github/petermchale/denois    ing_coverage_profiles/blob/master/motif_enrichment_in_false_SVs.ipynb)
+[Are certain DNA sequence motifs enriched in false SV calls?](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/motif_enrichment_in_false_SVs.ipynb)
