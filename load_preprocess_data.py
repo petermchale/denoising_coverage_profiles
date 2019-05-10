@@ -127,6 +127,7 @@ def load_data(args, training_time=True):
 
 
 def _one_hot_encode_conv1d(sequence):
+    sequence = sequence.upper()
     encoded_sequence = np.zeros((len(sequence), 4))
     for i, base in enumerate(sequence):
         if base not in alphabet:

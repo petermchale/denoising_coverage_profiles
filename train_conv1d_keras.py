@@ -8,11 +8,15 @@ from utility_train import \
 
 
 def model(image_height, image_width):
-    from keras.models import Sequential
+    # testing
+    import tensorflow as tf
+    model = tf.keras.Model()
+    model.compile()
+
+    from tensorflow.keras.models import Sequential
     from keras.layers import Dense, Dropout, Flatten, Conv1D, MaxPooling1D
     from keras.regularizers import l2
 
-    model = Sequential()
 
     import keras
     keras.optimizers.Adam
