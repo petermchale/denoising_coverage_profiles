@@ -71,10 +71,10 @@ def compute_observed_depth_mean(depths, chromosome_number):
     return np.mean(depths[int(25e6):int(50e6)])
 
 
-def read_depths(args):
+def read_depths(args, target_tool='multicov'):
     assert (str(args.chromosome_number) == '22')
     tool, dtype, suffix = os.path.basename(args.depth_file_name).split('.')[-3:]
-    assert (tool == 'multicov')
+    assert (tool == target_tool)
     assert (suffix == 'bin')
     return np.fromfile(args.depth_file_name, dtype=getattr(np, dtype))
 
@@ -169,6 +169,7 @@ def test_one_hot_decode_conv1d():
 
 
 def _one_hot_encode_conv2d(sequence):
+    sequence = sequence.upper()
     image = np.zeros((4, len(sequence)))
     for i, base in enumerate(sequence):
         if base not in alphabet:
