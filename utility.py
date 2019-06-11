@@ -51,6 +51,14 @@ def named_tuple(dictionary):
     from collections import namedtuple
     return namedtuple('Struct', dictionary.keys())(*dictionary.values())
 
+# https://stackoverflow.com/a/23689767/6674256
+# also: https://stackoverflow.com/questions/4984647/accessing-dict-keys-like-an-attribute
+class DotDict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
 import numpy as np
 
 # https://bugs.python.org/issue24313
