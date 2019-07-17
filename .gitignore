@@ -1,4 +1,3 @@
-
 *_old.py
 __pycache__
 *.out
@@ -14,3 +13,10 @@ __pycache__
 *.hdf5
 logs
 *.pdf
+
+*.py
+!load_preprocess_data.py
+!utility.py
+
+*.ipynb
+!discovering_DNA_motifs_using_convnets_classification.ipynb

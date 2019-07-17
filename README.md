@@ -1,43 +1,50 @@
-# Motivation
+# The problem of bias in read depth 
 
-Clinical labs are moving towards WGS. 
+Structural variants are often identified 
+using algorithms that search for hills and 
+valleys in read depth of coverage. 
 
-CNVs can be better discovered using depth of coverage profiles from WGS than:  
-* exome sequencing (where coverage is biased systematically by hybridization and amplification) 
-* array hybridization (where probe density is sparse (1/10000bp)). 
+But certain sequences in 
+the genome are known to be associated with 
+changes in coverage, even in the absence of a structural variant. 
 
-But WGS coverage profiles are subject to systematic biases, confounding the discovery of CNVs. 
+Such systematic biases in depth of coverage need to be corrected 
+before being passed to a structural variant caller. 
 
-Here, we explore a deep-learning approach to characterize these biases. 
-Deep learning has proven successful at mapping sequence information onto 
-epigenetic information. We tackle the potentially more challenging 
-task of deep-learning a mapping from sequence to read depth, 
-with the goal of "denoising" coverage profiles.  
+# Learning and correcting the bias 
 
-Any methods developed ought to be highly generalizable to other seq protocols, e.g., RNA-seq. 
+Convolutional Neural Networks have recently been used to 
+classify genomic sequences. I illustrate the approach 
+[here](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_classification.ipynb)
+using toy sequence data. 
 
-# Summary of work done so far 
+We adapted this idea and built a Convolutional Neural Network 
+that predicts a mixture of Poisson distributions for read depth
+conditional upon an input sequence.
 
-## Basic approach
+When this model is trained on sequences containing 
+an AT-dinucleotide repeat and random sequences, 
+it [corrects 
+depth of coverage](https://colab.research.google.com/drive/1jIM5OOurbUeP_an0qiQwAsInYIHZClxf)
+in sequences harboring the AT-dinucleotide repeat.    
 
-[Basic Poisson model](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/poisson_model_of_read_depths.ipynb)
 
-[Signal-to-noise analysis](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/signal_to_noise.ipynb)
+# Next steps 
 
-[Rejection sampling](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/rejection_sampling.ipynb)
+What is needed now is a training set enriched for 
+ALL motifs in the genome that affect coverage. 
+With that in hand, the model can be trained to correct 
+all systematic biases present in the genome.  
 
-## 1D convolution models in Keras
+Possible ways to obtain such a training set include: 
 
-[Genomics classification task](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_classification.ipynb)
+* pooling depths across multiple samples, thereby increasing the 
+signal-to-noise ratio, and then selecting examples with, e.g., 
+lower than expected read depth
+* using the HOMER and MEME-CHIP toolsets 
+to find motifs that appear in the training set 
+more often than in an equal-sized set of random DNA sequences, 
+and then retaining only training examples that 
+contain one or more of these motifs.
 
-[Genomics regression task](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_regression.ipynb)
 
-## Mixture models
-
-Fitting a mixture model to synthetic data [(part1)](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part1.ipynb) [(part2)](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part2.ipynb)
-
-[Using a mixture model to denoise depth of coverage at AT repeat sequences](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/discovering_DNA_motifs_using_convnets_mixtureDistribution_part3.ipynb)
-
-## Motif enrichment
-
-[Are certain DNA sequence motifs enriched in false SV calls?](http://nbviewer.jupyter.org/github/petermchale/denoising_coverage_profiles/blob/master/motif_enrichment_in_false_SVs.ipynb)
