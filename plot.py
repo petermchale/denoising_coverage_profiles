@@ -4,11 +4,11 @@ from utility import down_sample, get_train_args
 import utility_train
 
 
-def format_fig(fig, height=4):
-    fig.set_size_inches(15, height)
+def format_fig(fig, width=15, height=4):
+    fig.set_size_inches(width, height)
 
 
-def format_axis(axis):
+def format_axis(axis, legend=False):
     label_fontsize = 18
     legend_fontsize = 18
     tick_fontsize = 16
@@ -16,7 +16,8 @@ def format_axis(axis):
 
     axis.set_xlabel(axis.get_xlabel(), fontsize=label_fontsize)
     axis.set_ylabel(axis.get_ylabel(), fontsize=label_fontsize)
-    axis.legend(fontsize=legend_fontsize)
+    if legend:
+        axis.legend(fontsize=legend_fontsize)
     axis.set_title(axis.get_title(), fontdict={'fontsize': title_fontsize})
     axis.tick_params(labelsize=tick_fontsize)
 
