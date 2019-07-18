@@ -5,7 +5,7 @@ in the human genome using algorithms that search for hills and
 valleys in read depth of coverage--the number of sequenced 
 "reads" that align to each part of the human genome. 
 
-But certain sequences in 
+But certain "motif" sequences in 
 the genome are known to be associated with 
 changes in coverage, even in the absence of a structural variant. 
 
