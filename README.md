@@ -21,9 +21,9 @@ classify genomic sequences. I illustrate the approach
 using toy sequence data. 
 
 We adapted this idea and built a Convolutional Neural Network 
-that predicts a mixture of Poisson distributions for read depth
-conditional upon an input sequence.
-
+that models the read depth associated with a given sequence 
+as a mixture of Poisson distributions.
+ 
 When this model is trained on sequences containing 
 an AT-dinucleotide repeat and random sequences, 
 it [corrects 
