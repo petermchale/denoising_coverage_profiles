@@ -1,9 +1,4 @@
-*_old.py
 __pycache__
-*.out
-*.log
-*.out
-*.err
 *.pyc
 .DS_Store
 .idea
@@ -11,7 +6,6 @@ __pycache__
 *.ai
 *.txt
 *.hdf5
-logs
 *.pdf
 
 *.py
@@ -20,3 +14,8 @@ logs
 
 *.ipynb
 !discovering_DNA_motifs_using_convnets_classification.ipynb
+
+*.sh
+*.pkl
+*.json
+*.nim
