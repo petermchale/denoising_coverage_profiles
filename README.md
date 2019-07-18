@@ -42,7 +42,8 @@ all systematic biases present in the genome.
 
 Possible ways to obtain such a training set include: 
 
-* pooling depths across multiple samples, thereby increasing the 
+* pooling depths across multiple samples (individuals), 
+thereby increasing the 
 signal-to-noise ratio, and then selecting examples with, e.g., 
 lower than expected read depth
 * using the HOMER and MEME-CHIP toolsets 
