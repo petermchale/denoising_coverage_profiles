@@ -1,7 +1,7 @@
 # The problem of bias in read depth 
 
 Structural variants are often identified 
-using algorithms that search for hills and 
+in the human genome using algorithms that search for hills and 
 valleys in read depth of coverage. 
 
 But certain sequences in 
