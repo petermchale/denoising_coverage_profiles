@@ -3,7 +3,7 @@
 Structural variants--large genetic mutations--are often identified 
 in the human genome using algorithms that search for hills and 
 valleys in read depth of coverage--the number of sequenced 
-"reads" that align to a given part of the human genome. 
+"reads" that align to each part of the human genome. 
 
 But certain sequences in 
 the genome are known to be associated with 
