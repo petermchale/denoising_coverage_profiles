@@ -35,7 +35,7 @@ in sequences harboring the AT-dinucleotide repeat.
 
 What is needed now is a training set enriched for 
 ALL motifs in the genome that affect coverage. 
-With that in hand, the model can be trained to correct 
+With that in hand, the model could be trained to correct 
 all systematic biases present in the genome.  
 
 Possible ways to obtain such a training set include: 
