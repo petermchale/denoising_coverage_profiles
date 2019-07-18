@@ -7,6 +7,7 @@ __pycache__
 *.txt
 *.hdf5
 *.pdf
+logs
 
 *.py
 !load_preprocess_data.py

@@ -1,15 +1,17 @@
-# The problem of bias in read depth 
+# Bias in sequencing the genome  
 
-Structural variants are often identified 
+Structural variants--large genetic mutations--are often identified 
 in the human genome using algorithms that search for hills and 
-valleys in read depth of coverage. 
+valleys in read depth of coverage--the number of sequenced 
+"reads" that align to a given part of the human genome. 
 
 But certain sequences in 
 the genome are known to be associated with 
 changes in coverage, even in the absence of a structural variant. 
 
 Such systematic biases in depth of coverage need to be corrected 
-before being passed to a structural variant caller. 
+before those data are passed to a structural variant caller 
+to avoid false calls.  
 
 # Learning and correcting the bias 
 
